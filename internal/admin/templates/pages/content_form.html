@@ -60,7 +60,7 @@
             {{if .PublishedAt}}<dt class="text-base-content/60">Published</dt><dd>{{dateptr .PublishedAt}}</dd>{{end}}
           </dl>
           <div class="mt-4 flex flex-wrap gap-2">
-            <button type="button" class="btn btn-sm btn-ghost border-base-300" hx-get="{{$base}}/{{.ID}}/preview" hx-target="#modal-body">{{icon "code"}} API preview</button>
+            <button type="button" class="btn btn-sm btn-ghost border-base-300" hx-get="{{$base}}/{{.ID}}/preview" hx-target="#modal">{{icon "code"}} API preview</button>
           </div>
         </div>
         {{end}}
@@ -220,7 +220,7 @@
     {{if not $ro}}
     <button type="button" x-show="multiple || !items.length"
             class="grid h-[7.6rem] w-32 place-items-center rounded-lg border border-dashed border-base-300 text-sm text-base-content/65 hover:border-primary hover:text-primary"
-            hx-get="/admin/s/{{.Site.Slug}}/media/picker?field={{$f.Name}}{{if $f.Multiple}}&multiple=1{{end}}{{range $f.AllowedTypes}}&accept={{.}}{{end}}" hx-target="#modal-body">
+            hx-get="/admin/s/{{.Site.Slug}}/media/picker?field={{$f.Name}}{{if $f.Multiple}}&multiple=1{{end}}{{range $f.AllowedTypes}}&accept={{.}}{{end}}" hx-target="#modal">
       <span class="flex flex-col items-center gap-1">{{icon "plus" "size-5"}}<span x-text="items.length ? 'Add more' : 'Add media'">Add media</span></span>
     </button>
     {{end}}

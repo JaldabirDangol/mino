@@ -3,7 +3,7 @@
 {{with .Data}}
 <div class="grid gap-6 lg:grid-cols-[15rem_1fr]">
   <aside class="lg:sticky lg:top-6 lg:self-start" aria-label="Content types">
-    <button type="button" class="btn btn-primary btn-sm mb-4 w-full" onclick="document.getElementById('create-type').showModal()">{{icon "plus"}} New content type</button>
+    <button type="button" class="btn btn-primary btn-sm mb-4 w-full" x-data @click="document.getElementById('create-type').showModal()">{{icon "plus"}} New content type</button>
     {{$hasC := false}}{{$hasS := false}}
     {{range .Types}}{{if eq .Kind "collection"}}{{$hasC = true}}{{else}}{{$hasS = true}}{{end}}{{end}}
     {{if $hasC}}
@@ -79,7 +79,7 @@
     <span><span class="block text-sm font-medium">Draft &amp; publish</span><span class="block text-xs text-base-content/65">Entries stay private drafts until someone publishes them.</span></span>
   </label>
   <div class="modal-action">
-    <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Cancel</button>
+    <button type="button" class="btn btn-ghost" x-data @click="$el.closest('dialog').close()">Cancel</button>
     <button class="btn btn-primary">Create</button>
   </div>
 </form>

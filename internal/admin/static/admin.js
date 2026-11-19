@@ -70,7 +70,7 @@
   }
   document.addEventListener("toast", (e) => e.detail && Mino.toast(e.detail.kind, e.detail.message));
   document.addEventListener("htmx:afterSwap", (e) => {
-    if (e.detail.target && e.detail.target.id === "modal-body") {
+    if (e.detail.target && e.detail.target.id === "modal") {
       const d = document.getElementById("modal");
       if (d && !d.open) d.showModal();
     }

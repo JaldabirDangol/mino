@@ -13,6 +13,21 @@ import (
 	"mino/internal/db"
 )
 
+// entries formats a count of entries ("1 entry", "3 entries").
+func hasHave(n int) string {
+	if n == 1 {
+		return "has"
+	}
+	return "have"
+}
+
+func entries(n int) string {
+	if n == 1 {
+		return "1 entry"
+	}
+	return fmt.Sprintf("%d entries", n)
+}
+
 // ErrNotFound is returned when a content type does not exist.
 var ErrNotFound = errors.New("content type not found")
 
@@ -310,7 +325,7 @@ func (s *Service) assess(ctx context.Context, ct *ContentType, c Change) (Impact
 		imp.Affected, err = s.countWithValue(ctx, ct, c.Old)
 		if imp.Affected > 0 {
 			imp.Level = ImpactDestructive
-			imp.Message = fmt.Sprintf("%d entries have a value for %q. Those values will be permanently deleted.", imp.Affected, c.Field)
+			imp.Message = fmt.Sprintf("%s %s a value for %q. Those values will be permanently deleted.", entries(imp.Affected), hasHave(imp.Affected), c.Field)
 		}
 	case FieldTypeChanged:
 		imp.Affected, err = s.countWithValue(ctx, ct, c.Old)
@@ -319,8 +334,8 @@ func (s *Service) assess(ctx context.Context, ct *ContentType, c Change) (Impact
 		}
 		if c.Old.IsLink() || c.New.IsLink() || !IsSafeTypeChange(c.Old.Type, c.New.Type) {
 			imp.Level = ImpactBlocked
-			imp.Message = fmt.Sprintf("%d entries have a value for %q. %s cannot be converted to %s; remove the field and add a new one instead.",
-				imp.Affected, c.Field, c.Old.Type.Label(), c.New.Type.Label())
+			imp.Message = fmt.Sprintf("%s %s a value for %q. %s cannot be converted to %s; remove the field and add a new one instead.",
+				entries(imp.Affected), hasHave(imp.Affected), c.Field, c.Old.Type.Label(), c.New.Type.Label())
 			break
 		}
 		var bad int
@@ -341,7 +356,7 @@ func (s *Service) assess(ctx context.Context, ct *ContentType, c Change) (Impact
 		if missing := total - with; missing > 0 {
 			imp.Level = ImpactWarning
 			imp.Affected = missing
-			imp.Message = fmt.Sprintf("%d entries have no value for %q and must be completed the next time they are saved.", missing, c.Field)
+			imp.Message = fmt.Sprintf("%s %s no value for %q and must be completed the next time they are published.", entries(missing), hasHave(missing), c.Field)
 		}
 	case FieldNowUnique:
 		err = s.pool.QueryRow(ctx, `SELECT count(*) FROM (
@@ -355,13 +370,13 @@ func (s *Service) assess(ctx context.Context, ct *ContentType, c Change) (Impact
 		imp.Affected, err = s.countEntries(ctx, ct.ID, `data->>$2 = ANY($3)`, c.Field, c.Removed)
 		if imp.Affected > 0 {
 			imp.Level = ImpactDestructive
-			imp.Message = fmt.Sprintf("%d entries use a removed value of %q. Their value will be cleared.", imp.Affected, c.Field)
+			imp.Message = fmt.Sprintf("%s %s a removed value of %q. Those values will be cleared.", entries(imp.Affected), map[bool]string{true: "uses", false: "use"}[imp.Affected == 1], c.Field)
 		}
 	case RelationChanged:
 		imp.Affected, err = s.countWithValue(ctx, ct, c.Old)
 		if imp.Affected > 0 {
 			imp.Level = ImpactDestructive
-			imp.Message = fmt.Sprintf("%d entries have links in %q. Changing its target or cardinality removes those links.", imp.Affected, c.Field)
+			imp.Message = fmt.Sprintf("%s %s links in %q. Changing its target or cardinality removes those links.", entries(imp.Affected), hasHave(imp.Affected), c.Field)
 		}
 	case RulesChanged:
 		imp.Affected, err = s.countInvalid(ctx, ct, c.Field, c.New)
@@ -379,7 +394,7 @@ func (s *Service) assess(ctx context.Context, ct *ContentType, c Change) (Impact
 		imp.Affected, err = s.countEntries(ctx, ct.ID, "published_at IS NULL")
 		if imp.Affected > 0 {
 			imp.Level = ImpactWarning
-			imp.Message = fmt.Sprintf("%d draft entries will be published.", imp.Affected)
+			imp.Message = fmt.Sprintf("%s in draft will be published.", entries(imp.Affected))
 		}
 	}
 	return imp, err

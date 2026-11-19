@@ -6,7 +6,6 @@ import StarterKit from "@tiptap/starter-kit";
 const buttons = [
   { cmd: "bold", label: "Bold", text: "B", cls: "font-bold", run: (e) => e.chain().focus().toggleBold().run() },
   { cmd: "italic", label: "Italic", text: "I", cls: "italic", run: (e) => e.chain().focus().toggleItalic().run() },
-  { cmd: "strike", label: "Strikethrough", text: "S", cls: "line-through", run: (e) => e.chain().focus().toggleStrike().run() },
   { cmd: "code", label: "Inline code", text: "</>", cls: "font-mono text-xs", run: (e) => e.chain().focus().toggleCode().run() },
   { sep: true },
   { cmd: "heading", attrs: { level: 2 }, label: "Heading", text: "H2", run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },
@@ -14,7 +13,6 @@ const buttons = [
   { cmd: "bulletList", label: "Bulleted list", text: "• List", run: (e) => e.chain().focus().toggleBulletList().run() },
   { cmd: "orderedList", label: "Numbered list", text: "1. List", run: (e) => e.chain().focus().toggleOrderedList().run() },
   { cmd: "blockquote", label: "Quote", text: "❝", run: (e) => e.chain().focus().toggleBlockquote().run() },
-  { cmd: "codeBlock", label: "Code block", text: "{ }", cls: "font-mono text-xs", run: (e) => e.chain().focus().toggleCodeBlock().run() },
   { cmd: "link", label: "Link", text: "Link", run: (e) => {
       const prev = e.getAttributes("link").href || "";
       const url = window.prompt("Link address (leave empty to remove)", prev);
@@ -50,7 +48,7 @@ function mount(root, input, opts = {}) {
   for (const b of buttons) {
     if (b.sep) {
       const s = document.createElement("span");
-      s.className = "mx-1 h-5 w-px bg-base-300";
+      s.className = "mx-0.5 h-5 w-px bg-base-300";
       toolbar.append(s);
       continue;
     }

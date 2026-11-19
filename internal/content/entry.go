@@ -67,11 +67,16 @@ type SerializeOptions struct {
 // Serialize returns the public JSON representation of an entry. Unpopulated link fields are
 // omitted; populated single links are an object or null, multiple links an array.
 func Serialize(e *Entry, opts SerializeOptions) map[string]any {
+	var published *time.Time
+	if e.PublishedAt != nil {
+		t := e.PublishedAt.UTC()
+		published = &t
+	}
 	out := map[string]any{
 		"id":          e.ID,
-		"createdAt":   e.CreatedAt,
-		"updatedAt":   e.UpdatedAt,
-		"publishedAt": e.PublishedAt,
+		"createdAt":   e.CreatedAt.UTC(),
+		"updatedAt":   e.UpdatedAt.UTC(),
+		"publishedAt": published,
 	}
 	if e.Type == nil {
 		return out

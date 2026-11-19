@@ -103,7 +103,7 @@ func (r *renderer) funcs() template.FuncMap {
 			return t.Local().Format("2 Jan 2006, 15:04")
 		},
 		"bytes":       humanBytes,
-		"json":        func(v any) (string, error) { b, err := json.MarshalIndent(v, "", "  "); return string(b), err },
+		"json":        prettyJSON,
 		"jsonAttr":    func(v any) (string, error) { b, err := json.Marshal(v); return string(b), err },
 		"typeLabel":   func(t schema.FieldType) string { return t.Label() },
 		"typeGlyph":   typeGlyph,
@@ -183,6 +183,16 @@ func (r *renderer) execute(w http.ResponseWriter, status int, page, name string,
 	w.WriteHeader(status)
 	_, err := buf.WriteTo(w)
 	return err
+}
+
+// prettyJSON indents without escaping <, > and & (the template escapes output itself).
+func prettyJSON(v any) (string, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	err := enc.Encode(v)
+	return strings.TrimSpace(buf.String()), err
 }
 
 func ago(t time.Time) string {

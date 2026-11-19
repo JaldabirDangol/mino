@@ -41,6 +41,7 @@ type Handler struct {
 	SecureCookies bool
 	SessionMaxAge time.Duration
 	PublicURL     string // used to show absolute API URLs; empty = same origin
+	MediaOrigin   string // origin serving media files when not same-origin (S3/CDN), for the CSP
 	Dev           bool
 
 	render       *renderer
@@ -71,7 +72,7 @@ func (h *Handler) Routes() (http.Handler, error) {
 	h.loginByEmail = auth.NewLimiter(8, 10*time.Minute)
 
 	r := chi.NewRouter()
-	r.Use(h.loadSession, h.checkOrigin)
+	r.Use(h.securityPolicy, h.loadSession, h.checkOrigin)
 
 	static, _ := fs.Sub(h.render.fsys, "static")
 	r.Handle("/static/*", http.StripPrefix("/admin/static/", cacheStatic(http.FileServerFS(static), h.Dev)))
@@ -156,6 +157,23 @@ func (h *Handler) Routes() (http.Handler, error) {
 	})
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) { h.notFound(w, r) })
 	return r, nil
+}
+
+// securityPolicy sets a Content-Security-Policy for admin pages. Scripts only load from this
+// origin, so injected markup cannot run inline scripts or event handlers. Alpine.js evaluates
+// its directive expressions with Function(), which requires 'unsafe-eval'.
+func (h *Handler) securityPolicy(next http.Handler) http.Handler {
+	media := "'self' data: blob:"
+	if h.MediaOrigin != "" {
+		media += " " + h.MediaOrigin
+	}
+	csp := "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; " +
+		"img-src " + media + "; media-src " + media + "; font-src 'self'; connect-src 'self'; " +
+		"object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Security-Policy", csp)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func cacheStatic(next http.Handler, dev bool) http.Handler {

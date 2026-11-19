@@ -104,17 +104,21 @@ Review checkpoints: after phases **2**, **5** and **6**.
 
 ## Phase 6 — Admin UI
 
-- [ ] Frontend build (Tailwind + DaisyUI, HTMX, Alpine, TipTap) — output embedded in the binary
-- [ ] Site switcher; site management (Super Admin)
-- [ ] Layout, sidebar, shared components: tables, modals, confirm dialogs, toasts,
+- [x] Frontend build (Tailwind + DaisyUI, HTMX, Alpine, TipTap) — output embedded in the binary
+- [x] Site switcher; site management (Super Admin)
+- [x] Layout, sidebar, shared components: tables, modals, confirm dialogs, toasts,
       loading indicators, empty states, pagination
-- [ ] Login / logout / first-run setup
-- [ ] Dashboard
-- [ ] Content-Type Builder: create/edit types, add/edit/reorder/remove fields, change confirmation
-- [ ] Content Manager: list, search, filter, sort, paginate, create, edit, duplicate, delete,
+- [x] Login / logout / first-run setup
+- [x] Dashboard
+- [x] Content-Type Builder: create/edit types, add/edit/reorder/remove fields, change confirmation
+- [x] Content Manager: list, search, filter, sort, paginate, create, edit, duplicate, delete,
       publish/unpublish, JSON preview; dynamic forms incl. relation and media pickers, rich text
-- [ ] Media Library UI
-- [ ] Settings: users, roles & permissions, API tokens, public API access, general settings
+- [x] Media Library UI
+- [x] Settings: users, roles & permissions, API tokens, public API access, general settings
+- [x] Tests: HTTP-level setup, login/logout, rate limiting, CSRF + Origin, open redirect,
+      form validation/publish, per-site and per-role enforcement, deactivation
+- [x] Browser walkthrough (Chrome): 11 flows incl. builder, pickers, uploads, author view, mobile, dark mode
+- Measured (release binary, 16 concurrent admin requests): RSS 21 MB at start, 50 MB peak, ~35 MB settled.
 
 **Checkpoint 3 — review full product in the browser.**
 

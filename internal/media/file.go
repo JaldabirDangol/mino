@@ -71,7 +71,7 @@ func (f *File) JSON() map[string]any {
 		"width":           f.Width,
 		"height":          f.Height,
 		"url":             f.URL,
-		"createdAt":       f.CreatedAt,
-		"updatedAt":       f.UpdatedAt,
+		"createdAt":       f.CreatedAt.UTC(),
+		"updatedAt":       f.UpdatedAt.UTC(),
 	}
 }

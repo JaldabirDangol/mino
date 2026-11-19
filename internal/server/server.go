@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -34,6 +35,8 @@ func New(o Options) http.Handler {
 	r := chi.NewRouter()
 	if o.TrustProxy {
 		r.Use(proxyIP)
+	} else {
+		r.Use(warnUntrustedProxy(o.Log))
 	}
 	r.Use(recoverer(o.Log), requestLog(o.Log), securityHeaders)
 
@@ -181,6 +184,22 @@ func proxyIP(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// warnUntrustedProxy logs once when requests arrive through a proxy that Mino does not trust:
+// every client then shares the proxy's IP, so login rate limiting would throttle everyone together.
+func warnUntrustedProxy(log *slog.Logger) func(http.Handler) http.Handler {
+	var once sync.Once
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("X-Forwarded-For") != "" {
+				once.Do(func() {
+					log.Warn("requests carry X-Forwarded-For but MINO_TRUST_PROXY is off; set MINO_TRUST_PROXY=true when running behind a reverse proxy so rate limits and logs see real client IPs")
+				})
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // ClientIP returns the client address used for logging and rate limiting.
