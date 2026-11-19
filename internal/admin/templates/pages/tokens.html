@@ -1,0 +1,32 @@
+{{define "content"}}
+{{$site := .Site}}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="mb-1 text-[13px] font-medium text-base-content/60">{{$site.Name}} · Site settings</p>
+    <h1 class="text-[28px] font-bold leading-tight">API tokens</h1>
+    <p class="mt-1 text-sm text-base-content/65">Tokens let your frontends and scripts call <span class="font-mono text-xs">/api/{{$site.Slug}}</span>. They only work for this site.</p>
+  </div>
+  <a href="/admin/s/{{$site.Slug}}/tokens/new" class="btn btn-primary">{{icon "plus"}} Create token</a>
+</div>
+{{with .Data.Tokens}}
+<div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+  <table class="table">
+    <thead><tr class="text-xs uppercase tracking-wider text-base-content/60"><th>Name</th><th>Type</th><th>Token</th><th>Last used</th><th>Expires</th><th></th></tr></thead>
+    <tbody>
+      {{range .}}
+      <tr class="hover:bg-base-200/50">
+        <td><a href="/admin/s/{{$site.Slug}}/tokens/{{.ID}}" class="font-medium hover:text-primary">{{.Name}}</a>{{if .Description}}<span class="block text-xs text-base-content/60">{{.Description}}</span>{{end}}</td>
+        <td><span class="badge badge-sm badge-ghost">{{.Type}}</span></td>
+        <td class="font-mono text-xs text-base-content/60">{{.Prefix}}…</td>
+        <td class="text-sm text-base-content/65">{{with .LastUsedAt}}{{ago .}}{{else}}Never{{end}}</td>
+        <td class="text-sm">{{if .Expired}}<span class="text-error">Expired</span>{{else if .ExpiresAt}}{{dateptr .ExpiresAt}}{{else}}<span class="text-base-content/60">Never</span>{{end}}</td>
+        <td class="text-right"><a href="/admin/s/{{$site.Slug}}/tokens/{{.ID}}" class="btn btn-ghost btn-sm">Edit</a></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+{{template "empty" (dict "Icon" "key" "Title" "No API tokens" "Text" "Create a read-only token for your website frontend, or a full-access token for import scripts." "Href" (printf "/admin/s/%s/tokens/new" $site.Slug) "Action" "Create a token")}}
+{{end}}
+{{end}}

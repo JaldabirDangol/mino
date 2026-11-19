@@ -1,0 +1,204 @@
+@import "tailwindcss";
+@source "../../internal/admin/templates";
+@source "../../internal/admin/static/admin.js";
+@source "./editor.js";
+
+@plugin "daisyui" {
+  themes: false;
+}
+
+/* Light theme: cool slate neutrals, indigo primary. Amber = draft, green = published. */
+@plugin "daisyui/theme" {
+  name: "mino";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  --color-base-100: #ffffff;
+  --color-base-200: #f3f5f8;
+  --color-base-300: #e2e6ed;
+  --color-base-content: #17202a;
+  --color-primary: #4b4fd8;
+  --color-primary-content: #ffffff;
+  --color-secondary: #e9eafb;
+  --color-secondary-content: #2d309a;
+  --color-accent: #4b4fd8;
+  --color-accent-content: #ffffff;
+  --color-neutral: #1c2531;
+  --color-neutral-content: #eef1f5;
+  --color-info: #2f6fd6;
+  --color-info-content: #ffffff;
+  --color-success: #13854f;
+  --color-success-content: #ffffff;
+  --color-warning: #c97a06;
+  --color-warning-content: #ffffff;
+  --color-error: #c9343c;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.375rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "mino-dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #161c24;
+  --color-base-200: #10151b;
+  --color-base-300: #283140;
+  --color-base-content: #e3e8ef;
+  --color-primary: #7f83f2;
+  --color-primary-content: #0e1030;
+  --color-secondary: #262a52;
+  --color-secondary-content: #c9cbff;
+  --color-accent: #7f83f2;
+  --color-accent-content: #0e1030;
+  --color-neutral: #0b0f14;
+  --color-neutral-content: #d7dde6;
+  --color-info: #6aa1f5;
+  --color-info-content: #06142b;
+  --color-success: #3cc98a;
+  --color-success-content: #04170d;
+  --color-warning: #f0a93b;
+  --color-warning-content: #231400;
+  --color-error: #f0646b;
+  --color-error-content: #2a0507;
+  --radius-selector: 0.375rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@font-face {
+  font-family: "Plex Sans";
+  src: url("fonts/plex-sans-latin.woff2") format("woff2");
+  font-weight: 100 700;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Plex Sans";
+  src: url("fonts/plex-sans-latin-ext.woff2") format("woff2");
+  font-weight: 100 700;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Plex Sans";
+  src: url("fonts/plex-sans-latin-italic.woff2") format("woff2");
+  font-weight: 100 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Schibsted";
+  src: url("fonts/schibsted-latin.woff2") format("woff2");
+  font-weight: 400 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Schibsted";
+  src: url("fonts/schibsted-latin-ext.woff2") format("woff2");
+  font-weight: 400 900;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("fonts/plex-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("fonts/plex-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Schibsted", "Plex Sans", ui-sans-serif, sans-serif;
+  --font-mono: "Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@layer base {
+  html {
+    font-feature-settings: "ss02";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+/* The site rail: every site has a stable hue (--site-hue, set from its slug) so editors always
+   see which website they are working on. */
+.site-rail {
+  background: oklch(0.62 0.17 var(--site-hue, 270));
+}
+.site-tile {
+  background: oklch(0.62 0.17 var(--site-hue, 270));
+  color: white;
+}
+.site-tint {
+  background: oklch(0.96 0.03 var(--site-hue, 270));
+}
+@media (prefers-color-scheme: dark) {
+  .site-tint {
+    background: oklch(0.28 0.05 var(--site-hue, 270));
+  }
+}
+
+/* Rich text editor content. */
+.prose-editor {
+  min-height: 12rem;
+  padding: 0.75rem 1rem;
+  outline: none;
+  line-height: 1.6;
+}
+.prose-editor > * + * { margin-top: 0.6em; }
+.prose-editor h2 { font-size: 1.35rem; font-weight: 650; }
+.prose-editor h3 { font-size: 1.12rem; font-weight: 650; }
+.prose-editor ul { list-style: disc; padding-left: 1.4rem; }
+.prose-editor ol { list-style: decimal; padding-left: 1.4rem; }
+.prose-editor blockquote { border-left: 3px solid var(--color-base-300); padding-left: 0.9rem; color: color-mix(in oklab, var(--color-base-content) 75%, transparent); }
+.prose-editor code { font-family: var(--font-mono); font-size: 0.9em; background: var(--color-base-200); padding: 0.1em 0.3em; border-radius: 0.25rem; }
+.prose-editor pre { font-family: var(--font-mono); background: var(--color-base-200); padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; }
+.prose-editor a { color: var(--color-primary); text-decoration: underline; }
+.prose-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: color-mix(in oklab, var(--color-base-content) 40%, transparent);
+}
+
+/* HTMX request indicator */
+.htmx-indicator { opacity: 0; transition: opacity 150ms; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -25,6 +25,17 @@ type Config struct {
 	LogLevel      slog.Level    // MINO_LOG_LEVEL: debug|info|warn|error
 	LogFormat     string        // MINO_LOG_FORMAT: text|json, default text
 	Dev           bool          // MINO_DEV: serve static assets from disk, verbose errors
+	CORSOrigins   []string      // MINO_CORS_ORIGINS, comma-separated origins allowed to call /api; default "*"
+
+	// S3-compatible media storage (AWS S3, Cloudflare R2, MinIO, ...). When S3Bucket is empty,
+	// files are stored on local disk in UploadDir.
+	S3Endpoint  string // MINO_S3_ENDPOINT, e.g. https://s3.eu-west-1.amazonaws.com or https://<account>.r2.cloudflarestorage.com
+	S3Region    string // MINO_S3_REGION, default us-east-1 (use "auto" for R2)
+	S3Bucket    string // MINO_S3_BUCKET
+	S3AccessKey string // MINO_S3_ACCESS_KEY
+	S3SecretKey string // MINO_S3_SECRET_KEY
+	S3PublicURL string // MINO_S3_PUBLIC_URL, base URL clients use to fetch files (bucket website, CDN or r2.dev domain)
+	S3PathStyle bool   // MINO_S3_PATH_STYLE, default true (endpoint/bucket/key); false for bucket.endpoint/key
 }
 
 // Load reads configuration from the environment and validates it.
@@ -70,6 +81,34 @@ func Load() (*Config, error) {
 	}
 	if c.LogFormat != "text" && c.LogFormat != "json" {
 		return nil, fmt.Errorf("MINO_LOG_FORMAT must be text or json")
+	}
+
+	for _, o := range strings.Split(env("MINO_CORS_ORIGINS", "*"), ",") {
+		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
+			c.CORSOrigins = append(c.CORSOrigins, o)
+		}
+	}
+
+	c.S3Bucket = os.Getenv("MINO_S3_BUCKET")
+	c.S3Endpoint = strings.TrimRight(os.Getenv("MINO_S3_ENDPOINT"), "/")
+	c.S3Region = env("MINO_S3_REGION", "us-east-1")
+	c.S3AccessKey = os.Getenv("MINO_S3_ACCESS_KEY")
+	c.S3SecretKey = os.Getenv("MINO_S3_SECRET_KEY")
+	c.S3PublicURL = strings.TrimRight(os.Getenv("MINO_S3_PUBLIC_URL"), "/")
+	if c.S3PathStyle, err = envBool("MINO_S3_PATH_STYLE", true); err != nil {
+		return nil, err
+	}
+	if c.S3Bucket != "" {
+		var missing []string
+		for k, v := range map[string]string{"MINO_S3_ENDPOINT": c.S3Endpoint, "MINO_S3_ACCESS_KEY": c.S3AccessKey,
+			"MINO_S3_SECRET_KEY": c.S3SecretKey, "MINO_S3_PUBLIC_URL": c.S3PublicURL} {
+			if v == "" {
+				missing = append(missing, k)
+			}
+		}
+		if len(missing) > 0 {
+			return nil, fmt.Errorf("MINO_S3_BUCKET is set but %s missing", strings.Join(missing, ", "))
+		}
 	}
 	return c, nil
 }

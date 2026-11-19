@@ -1,0 +1,8 @@
+{{define "content"}}
+{{template "page-title" (dict "Title" "Content Manager" "Eyebrow" .Site.Name)}}
+{{if .Access.Can "schema.manage"}}
+  {{template "empty" (dict "Icon" "builder" "Title" "No content types yet" "Text" "Create a content type in the Content-Type Builder. Its entries will appear here." "Href" (printf "/admin/s/%s/builder?new=1" .Site.Slug) "Action" "Create a content type")}}
+{{else}}
+  {{template "empty" (dict "Icon" "content" "Title" "Nothing to edit yet" "Text" "No content types are available to your role on this site.")}}
+{{end}}
+{{end}}

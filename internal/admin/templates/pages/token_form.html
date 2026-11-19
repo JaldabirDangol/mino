@@ -1,0 +1,90 @@
+{{define "content"}}
+{{$site := .Site}}
+{{with .Data}}
+<a href="/admin/s/{{$site.Slug}}/tokens" class="mb-3 inline-flex items-center gap-1 text-sm text-base-content/65 hover:text-base-content">{{icon "left"}} API tokens</a>
+<h1 class="mb-6 text-[28px] font-bold leading-tight">{{if .IsNew}}Create API token{{else}}{{.Token.Name}}{{end}}</h1>
+
+{{if .Secret}}
+<section class="mb-6 max-w-4xl rounded-box border border-success/40 bg-success/5 p-5" aria-labelledby="secret-heading">
+  <h2 id="secret-heading" class="font-semibold">Copy this token now</h2>
+  <p class="mt-1 text-sm text-base-content/75">For security it is shown only once. Store it in your frontend's environment variables.</p>
+  <div class="mt-3 flex items-center gap-2 rounded-lg bg-base-100 px-3 py-2.5 font-mono text-[13px]"><span class="min-w-0 flex-1 break-all">{{.Secret}}</span>{{template "copy" .Secret}}</div>
+  <p class="mt-3 font-mono text-xs text-base-content/65">Authorization: Bearer {{.Token.Prefix}}…</p>
+</section>
+{{end}}
+
+<form method="post" action="{{if .IsNew}}/admin/s/{{$site.Slug}}/tokens/new{{else}}/admin/s/{{$site.Slug}}/tokens/{{.Token.ID}}{{end}}" class="grid max-w-4xl gap-6"
+      x-data="{ type: {{jsonAttr .Token.Type}} }">
+  {{template "csrf" $.CSRF}}
+  <section class="rounded-box border border-base-300 bg-base-100 p-6">
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">Name</span><input name="name" value="{{.Token.Name}}" required class="input w-full {{if index .Errors "name"}}input-error{{end}}" placeholder="Website frontend">{{template "field-error" (index .Errors "name")}}</label>
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">Description</span><input name="description" value="{{.Token.Description}}" class="input w-full"></label>
+      {{if .IsNew}}
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-medium">Expires</span>
+        <select name="expiry" class="select w-full">
+          {{range $v := (list "7" "30" "90" "0")}}<option value="{{$v}}" {{if eq $v $.Data.Expiry}}selected{{end}}>{{if eq $v "0"}}Never{{else}}In {{$v}} days{{end}}</option>{{end}}
+        </select>
+      </label>
+      {{else}}
+      <div><span class="mb-1.5 block text-sm font-medium">Expires</span><p class="py-2 text-sm">{{if .Token.ExpiresAt}}{{dateptr .Token.ExpiresAt}}{{if .Token.Expired}} <span class="text-error">(expired)</span>{{end}}{{else}}Never{{end}}</p></div>
+      {{end}}
+    </div>
+    <fieldset class="mt-6">
+      <legend class="mb-2 text-sm font-medium">Access</legend>
+      <div class="grid gap-2 sm:grid-cols-3">
+        {{range $t := (list "read-only" "full-access" "custom")}}
+        <label class="flex cursor-pointer gap-3 rounded-box border border-base-300 p-3 has-checked:border-primary has-checked:bg-secondary/60">
+          <input type="radio" name="type" value="{{$t}}" class="radio radio-primary radio-sm mt-0.5" x-model="type">
+          <span><span class="block text-sm font-medium">{{if eq $t "read-only"}}Read-only{{else if eq $t "full-access"}}Full access{{else}}Custom{{end}}</span>
+          <span class="block text-xs text-base-content/65">{{if eq $t "read-only"}}Read entries, including drafts, and media.{{else if eq $t "full-access"}}Read and write everything on this site.{{else}}Choose actions per content type.{{end}}</span></span>
+        </label>
+        {{end}}
+      </div>
+      {{template "field-error" (index .Errors "type")}}
+    </fieldset>
+  </section>
+
+  <section class="rounded-box border border-base-300 bg-base-100 p-6" x-show="type === 'custom'" x-cloak>
+    <h2 class="font-semibold">Permissions</h2>
+    {{if .Types}}
+    <div class="mt-4 overflow-x-auto">
+      <table class="table table-sm">
+        <thead><tr class="text-xs uppercase tracking-wider text-base-content/60"><th>Content type</th><th class="text-center">find</th><th class="text-center">findOne</th><th class="text-center">create</th><th class="text-center">update</th><th class="text-center">delete</th></tr></thead>
+        <tbody>
+          {{range $ct := .Types}}
+          <tr>
+            <td><span class="font-medium">{{$ct.DisplayName}}</span> <span class="font-mono text-xs text-base-content/55">/{{$ct.RouteName}}</span></td>
+            {{range $a := (list "find" "findOne" "create" "update" "delete")}}
+            <td class="text-center">
+              {{if and (eq $ct.Kind "single") (or (eq $a "findOne") (eq $a "create"))}}<span class="text-base-content/30">—</span>
+              {{else}}<input type="checkbox" name="perm" value="{{perm $a $ct.UID}}" class="checkbox checkbox-primary checkbox-sm" aria-label="{{$a}} {{$ct.DisplayName}}" {{if contains $.Data.Token.Permissions (perm $a $ct.UID)}}checked{{end}}>{{end}}
+            </td>
+            {{end}}
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    {{else}}<p class="mt-2 text-sm text-base-content/60">This site has no content types yet.</p>{{end}}
+    <div class="mt-5 flex flex-wrap gap-5 border-t border-base-300 pt-4">
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="perm" value="upload:read" class="checkbox checkbox-primary checkbox-sm" {{if contains .Token.Permissions "upload:read"}}checked{{end}}> List media files</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="perm" value="upload:write" class="checkbox checkbox-primary checkbox-sm" {{if contains .Token.Permissions "upload:write"}}checked{{end}}> Upload and delete media</label>
+    </div>
+  </section>
+
+  <div class="flex justify-end gap-2">
+    <a href="/admin/s/{{$site.Slug}}/tokens" class="btn btn-ghost">{{if .Secret}}Done{{else}}Cancel{{end}}</a>
+    <button class="btn btn-primary">{{if .IsNew}}Create token{{else}}Save changes{{end}}</button>
+  </div>
+</form>
+
+{{if not .IsNew}}
+<div class="mt-8 flex max-w-4xl flex-wrap gap-2">
+  <form method="post" action="/admin/s/{{$site.Slug}}/tokens/{{.Token.ID}}/regenerate" data-confirm="Generate a new secret for {{.Token.Name}}? The current one stops working immediately." data-confirm-ok="Regenerate" data-confirm-safe>{{template "csrf" $.CSRF}}<button class="btn btn-ghost btn-sm border-base-300">{{icon "refresh"}} Regenerate</button></form>
+  <form method="post" action="/admin/s/{{$site.Slug}}/tokens/{{.Token.ID}}/delete" data-confirm="Revoke {{.Token.Name}}? Requests using it will be rejected." data-confirm-ok="Revoke token">{{template "csrf" $.CSRF}}<button class="btn btn-ghost btn-sm text-error">{{icon "trash"}} Revoke</button></form>
+</div>
+{{end}}
+{{end}}
+{{end}}

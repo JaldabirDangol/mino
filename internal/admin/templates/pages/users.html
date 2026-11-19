@@ -1,0 +1,52 @@
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="mb-1 text-[13px] font-medium text-base-content/60">Installation</p>
+    <h1 class="text-[28px] font-bold leading-tight">Users</h1>
+    <p class="mt-1 text-sm text-base-content/65">People who can log in to this admin panel, and the sites they can work on.</p>
+  </div>
+  <a href="/admin/users/new" class="btn btn-primary">{{icon "plus"}} Add user</a>
+</div>
+<form class="mb-4" role="search" hx-get="/admin/users" hx-target="#users-table" hx-push-url="true" hx-trigger="input changed delay:300ms from:input">
+  <label class="input input-sm w-full sm:w-72">{{icon "search" "size-4 opacity-60"}}<input type="search" name="q" value="{{.Data.Search}}" placeholder="Search by name or email" aria-label="Search users"></label>
+</form>
+<div id="users-table">{{template "table" .}}</div>
+{{end}}
+
+{{define "table"}}
+{{with .Data}}
+{{if .Users}}
+<div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+  <table class="table">
+    <thead><tr class="text-xs uppercase tracking-wider text-base-content/60"><th>Name</th><th>Access</th><th>Status</th><th>Last login</th><th></th></tr></thead>
+    <tbody>
+      {{range .Users}}
+      <tr class="hover:bg-base-200/50">
+        <td>
+          <a href="/admin/users/{{.ID}}" class="flex items-center gap-3">
+            <span class="grid size-8 shrink-0 place-items-center rounded-full bg-base-300 text-sm font-semibold">{{initial .Name}}</span>
+            <span class="min-w-0"><span class="block truncate font-medium hover:text-primary">{{.Name}}</span><span class="block truncate text-xs text-base-content/60">{{.Email}}</span></span>
+          </a>
+        </td>
+        <td>
+          {{if .SuperAdmin}}<span class="badge badge-sm border-primary/30 bg-secondary text-secondary-content">Super Admin · all sites</span>
+          {{else}}
+            <div class="flex flex-wrap gap-1">
+            {{range index $.Data.Memberships .ID}}<span class="badge badge-sm badge-ghost gap-1.5" style="--site-hue: {{siteHue .SiteSlug}}"><span class="site-tile size-2 rounded-full"></span>{{.SiteName}} · {{.RoleName}}</span>
+            {{else}}<span class="text-sm text-base-content/50">No sites</span>{{end}}
+            </div>
+          {{end}}
+        </td>
+        <td>{{if .Active}}<span class="text-sm text-success">Active</span>{{else}}<span class="text-sm text-base-content/50">Deactivated</span>{{end}}</td>
+        <td class="whitespace-nowrap text-sm text-base-content/65">{{with .LastLoginAt}}{{ago .}}{{else}}Never{{end}}</td>
+        <td class="text-right"><a href="/admin/users/{{.ID}}" class="btn btn-ghost btn-sm">Edit</a></td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+{{template "empty" (dict "Icon" "users" "Title" "No users match" "Text" "Try another name or email.")}}
+{{end}}
+{{end}}
+{{end}}

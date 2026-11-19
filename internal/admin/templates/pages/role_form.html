@@ -1,0 +1,72 @@
+{{define "content"}}
+{{with .Data}}
+{{$role := .Role}}
+<a href="/admin/roles" class="mb-3 inline-flex items-center gap-1 text-sm text-base-content/65 hover:text-base-content">{{icon "left"}} Roles</a>
+<h1 class="mb-6 text-[28px] font-bold leading-tight">{{if .IsNew}}New role{{else}}{{.Role.Name}}{{end}}</h1>
+{{template "form-alert" .ErrorText}}
+<form method="post" action="{{if .IsNew}}/admin/roles/new{{else}}/admin/roles/{{.Role.ID}}{{end}}" class="grid max-w-5xl gap-6">
+  {{template "csrf" $.CSRF}}
+  <section class="rounded-box border border-base-300 bg-base-100 p-6">
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">Name</span><input name="name" value="{{.Role.Name}}" required class="input w-full {{if index .Errors "name"}}input-error{{end}}">{{template "field-error" (index .Errors "name")}}</label>
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">Description</span><input name="description" value="{{.Role.Description}}" class="input w-full"></label>
+    </div>
+  </section>
+
+  <section class="rounded-box border border-base-300 bg-base-100 p-6">
+    <h2 class="font-semibold">Site tools</h2>
+    <p class="mt-1 mb-4 text-sm text-base-content/65">Applies on every site where a user has this role.</p>
+    <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {{range .SiteActions}}
+      <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-base-300 px-3 py-2"><input type="checkbox" name="p:{{.}}:" value="true" class="checkbox checkbox-primary checkbox-sm" {{if roleHas $role . ""}}checked{{end}}><span class="text-sm">{{actionLabel .}}</span></label>
+      {{end}}
+    </div>
+  </section>
+
+  <section class="rounded-box border border-base-300 bg-base-100 p-6">
+    <h2 class="font-semibold">Content</h2>
+    <p class="mt-1 mb-4 text-sm text-base-content/65">“Own only” limits an action to entries the user created. The first row covers every content type, including ones added later.</p>
+    <div class="overflow-x-auto">
+      <table class="table table-sm">
+        <thead><tr class="text-xs uppercase tracking-wider text-base-content/60"><th>Content type</th>{{range .ContentActions}}<th class="text-center">{{actionLabel .}}</th>{{end}}</tr></thead>
+        <tbody>
+          {{template "perm-row" (dict "Role" $role "Actions" .ContentActions "Subject" "*" "Label" "All content types" "Strong" true)}}
+          {{range .Sites}}
+            {{if .Types}}
+            <tr><td colspan="6" class="bg-base-200/60 pt-3 text-xs font-semibold uppercase tracking-wider text-base-content/60" style="--site-hue: {{siteHue .Site.Slug}}"><span class="site-tile mr-1.5 inline-block size-2 rounded-full"></span>{{.Site.Name}}</td></tr>
+            {{range .Types}}{{template "perm-row" (dict "Role" $role "Actions" $.Data.ContentActions "Subject" (subject .ID) "Label" .DisplayName)}}{{end}}
+            {{end}}
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="flex justify-end gap-2">
+    <a href="/admin/roles" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary">{{if .IsNew}}Create role{{else}}Save role{{end}}</button>
+  </div>
+</form>
+{{if and (not .IsNew) (eq .Role.Members 0)}}
+<form method="post" action="/admin/roles/{{.Role.ID}}/delete" class="mt-8" data-confirm="Delete the role {{.Role.Name}}?" data-confirm-ok="Delete role">{{template "csrf" $.CSRF}}<button class="btn btn-ghost btn-sm text-error">{{icon "trash"}} Delete role</button></form>
+{{else if not .IsNew}}
+<p class="mt-8 text-sm text-base-content/60">This role is assigned {{.Role.Members}} {{plural .Role.Members "time" "times"}}. Reassign those users before deleting it.</p>
+{{end}}
+{{end}}
+{{end}}
+
+{{define "perm-row"}}
+<tr>
+  <td class="{{if .Strong}}font-semibold{{end}}">{{.Label}}</td>
+  {{range .Actions}}
+  <td class="text-center">
+    <div class="inline-flex flex-col items-center gap-1">
+      <input type="checkbox" name="p:{{.}}:{{$.Subject}}" value="true" class="checkbox checkbox-primary checkbox-sm" aria-label="{{actionLabel .}} {{$.Label}}" {{if roleHas $.Role . $.Subject}}checked{{end}}>
+      {{if or (eq . "content.update") (eq . "content.delete") (eq . "content.publish")}}
+      <label class="flex items-center gap-1 text-[11px] text-base-content/60"><input type="checkbox" name="own:{{.}}:{{$.Subject}}" value="true" class="checkbox checkbox-xs" {{if roleOwn $.Role . $.Subject}}checked{{end}}>own only</label>
+      {{end}}
+    </div>
+  </td>
+  {{end}}
+</tr>
+{{end}}

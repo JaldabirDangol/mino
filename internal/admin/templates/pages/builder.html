@@ -1,0 +1,368 @@
+{{define "content"}}
+{{$site := .Site}}
+{{with .Data}}
+<div class="grid gap-6 lg:grid-cols-[15rem_1fr]">
+  <aside class="lg:sticky lg:top-6 lg:self-start" aria-label="Content types">
+    <button type="button" class="btn btn-primary btn-sm mb-4 w-full" onclick="document.getElementById('create-type').showModal()">{{icon "plus"}} New content type</button>
+    {{$hasC := false}}{{$hasS := false}}
+    {{range .Types}}{{if eq .Kind "collection"}}{{$hasC = true}}{{else}}{{$hasS = true}}{{end}}{{end}}
+    {{if $hasC}}
+    <p class="mb-1 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/50">Collections</p>
+    <ul class="menu mb-4 w-full gap-0.5 p-0">
+      {{range .Types}}{{if eq .Kind "collection"}}<li><a href="/admin/s/{{$site.Slug}}/builder/{{.UID}}" class="rounded-lg py-1.5 {{if and $.Data.Current (eq .UID $.Data.Current.UID)}}menu-active bg-secondary font-medium text-secondary-content{{end}}">{{.DisplayName}}</a></li>{{end}}{{end}}
+    </ul>
+    {{end}}
+    {{if $hasS}}
+    <p class="mb-1 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/50">Single types</p>
+    <ul class="menu w-full gap-0.5 p-0">
+      {{range .Types}}{{if eq .Kind "single"}}<li><a href="/admin/s/{{$site.Slug}}/builder/{{.UID}}" class="rounded-lg py-1.5 {{if and $.Data.Current (eq .UID $.Data.Current.UID)}}menu-active bg-secondary font-medium text-secondary-content{{end}}">{{.DisplayName}}</a></li>{{end}}{{end}}
+    </ul>
+    {{end}}
+  </aside>
+
+  <div class="min-w-0">
+  {{if not .Current}}
+    {{template "page-title" (dict "Title" "Content-Type Builder" "Eyebrow" $site.Name)}}
+    {{template "empty" (dict "Icon" "builder" "Title" "Define your first content type" "Text" "A collection holds many entries (articles, products). A single type holds one (homepage, site settings). Each gets an admin form and REST endpoints automatically.")}}
+  {{else}}
+    {{template "editor" $}}
+  {{end}}
+  </div>
+</div>
+
+<dialog id="create-type" class="modal" {{if .OpenCreate}}data-open-on-load{{end}}>
+  <div class="modal-box max-w-lg" id="create-type-body">{{template "create-form" $}}</div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{{end}}
+{{end}}
+
+{{define "create-form"}}
+{{$site := .Site}}
+{{with .Data}}
+<form hx-post="/admin/s/{{$site.Slug}}/builder/new" hx-target="#create-type-body" hx-swap="innerHTML"
+      x-data="Mino.typeNames({ name: {{jsonAttr (index .Create "displayName")}}, uid: {{jsonAttr (index .Create "uid")}}, plural: {{jsonAttr (index .Create "pluralName")}} })">
+  <h3 class="text-lg font-semibold">New content type</h3>
+  <fieldset class="mt-5">
+    <legend class="mb-2 text-sm font-medium">Kind</legend>
+    <div class="grid grid-cols-2 gap-2">
+      <label class="flex cursor-pointer gap-3 rounded-box border border-base-300 p-3 has-checked:border-primary has-checked:bg-secondary/60">
+        <input type="radio" name="kind" value="collection" class="radio radio-primary radio-sm mt-0.5" {{if ne (index .Create "kind") "single"}}checked{{end}}>
+        <span><span class="block text-sm font-medium">Collection</span><span class="block text-xs text-base-content/65">Many entries, e.g. Articles</span></span>
+      </label>
+      <label class="flex cursor-pointer gap-3 rounded-box border border-base-300 p-3 has-checked:border-primary has-checked:bg-secondary/60">
+        <input type="radio" name="kind" value="single" class="radio radio-primary radio-sm mt-0.5" {{if eq (index .Create "kind") "single"}}checked{{end}}>
+        <span><span class="block text-sm font-medium">Single type</span><span class="block text-xs text-base-content/65">One entry, e.g. Homepage</span></span>
+      </label>
+    </div>
+  </fieldset>
+  <label class="mt-4 block">
+    <span class="mb-1.5 block text-sm font-medium">Display name</span>
+    <input name="displayName" x-model="name" @input="sync()" required placeholder="Blog post" class="input w-full {{if index .Errors "displayName"}}input-error{{end}}" autofocus>
+    {{template "field-error" (index .Errors "displayName")}}
+  </label>
+  <div class="mt-4 grid grid-cols-2 gap-3">
+    <label class="block">
+      <span class="mb-1.5 block text-sm font-medium">API id (singular)</span>
+      <input name="uid" x-model="uid" @input="touched = true" required class="input w-full font-mono text-sm {{if index .Errors "uid"}}input-error{{end}}">
+      {{template "field-error" (index .Errors "uid")}}
+    </label>
+    <label class="block">
+      <span class="mb-1.5 block text-sm font-medium">API id (plural)</span>
+      <input name="pluralName" x-model="plural" @input="touched = true" required class="input w-full font-mono text-sm {{if index .Errors "pluralName"}}input-error{{end}}">
+      {{template "field-error" (index .Errors "pluralName")}}
+    </label>
+  </div>
+  <p class="mt-2 font-mono text-xs text-base-content/60">/api/{{$site.Slug}}/<span x-text="plural || 'plural'"></span></p>
+  <label class="mt-4 flex cursor-pointer items-start gap-3">
+    <input type="checkbox" name="draftPublish" value="true" class="toggle toggle-primary toggle-sm mt-0.5" {{if ne (index .Create "draftPublish") "false"}}checked{{end}}>
+    <span><span class="block text-sm font-medium">Draft &amp; publish</span><span class="block text-xs text-base-content/65">Entries stay private drafts until someone publishes them.</span></span>
+  </label>
+  <div class="modal-action">
+    <button type="button" class="btn btn-ghost" onclick="this.closest('dialog').close()">Cancel</button>
+    <button class="btn btn-primary">Create</button>
+  </div>
+</form>
+{{end}}
+{{end}}
+
+{{define "editor"}}
+{{$site := .Site}}
+{{with .Data}}
+<div x-data="Mino.builder({ ct: {{.CurrentJSON}}, targets: {{jsonAttr .Targets}}, types: {{jsonAttr .FieldTypes}}, saveUrl: '/admin/s/{{$site.Slug}}/builder/{{.Current.UID}}' })">
+  <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0">
+      <p class="mb-1 text-[13px] font-medium text-base-content/60">Content-Type Builder</p>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <h1 class="truncate text-[28px] font-bold leading-tight" x-text="ct.displayName">{{.Current.DisplayName}}</h1>
+        <span class="badge badge-ghost badge-sm" x-text="ct.kind === 'single' ? 'Single type' : 'Collection'"></span>
+        <span x-show="ct.draftAndPublish" class="badge badge-ghost badge-sm">Draft &amp; publish</span>
+      </div>
+      <p class="mt-1.5 font-mono text-xs text-base-content/60">
+        <span x-text="ct.kind === 'single' ? '/api/{{$site.Slug}}/' + ct.uid : '/api/{{$site.Slug}}/' + ct.pluralName"></span>
+        · {{index .Counts .Current.ID}} {{plural (index .Counts .Current.ID) "entry" "entries"}}
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <button type="button" class="btn btn-sm btn-ghost border-base-300" @click="openSettings()">{{icon "pencil"}} Edit type</button>
+      <button type="button" class="btn btn-sm btn-primary" @click="save(false)" :disabled="!dirty || saving">
+        <span x-show="saving" class="loading loading-spinner loading-xs"></span> Save
+      </button>
+    </div>
+  </div>
+
+  <div x-show="dirty" x-cloak class="alert mb-4 border border-warning/40 bg-warning/10 py-2.5 text-sm">{{icon "alert" "size-4 text-warning"}}<span>Unsaved schema changes. Nothing changes for editors or the API until you save.</span></div>
+  <template x-if="errors.length">
+    <div role="alert" class="alert alert-error mb-4 border text-sm"><ul class="list-inside list-disc"><template x-for="e in errors"><li x-text="e"></li></template></ul></div>
+  </template>
+
+  <div class="rounded-box border border-base-300 bg-base-100">
+    <div class="flex items-center justify-between border-b border-base-300 px-4 py-3">
+      <h2 class="text-sm font-semibold"><span x-text="ct.fields.length"></span> <span x-text="ct.fields.length === 1 ? 'field' : 'fields'"></span></h2>
+      <button type="button" class="btn btn-sm btn-ghost text-primary" @click="newField()">{{icon "plus"}} Add field</button>
+    </div>
+    <ul class="divide-y divide-base-300" x-show="ct.fields.length">
+      <template x-for="(f, i) in ct.fields" :key="f._key">
+        <li class="flex items-center gap-3 px-4 py-2.5">
+          <span class="grid h-7 w-10 shrink-0 place-items-center rounded-md bg-base-200 font-mono text-[11px] font-medium text-base-content/75" x-text="glyph(f.type)"></span>
+          <span class="min-w-0 flex-1">
+            <span class="flex flex-wrap items-baseline gap-x-2">
+              <span class="font-mono text-sm font-medium" x-text="f.name"></span>
+              <span class="text-sm text-base-content/60" x-show="f.label" x-text="f.label"></span>
+            </span>
+            <span class="text-xs text-base-content/60" x-text="describe(f)"></span>
+          </span>
+          <span class="hidden flex-wrap gap-1 sm:flex">
+            <span x-show="f.required" class="badge badge-ghost badge-xs">required</span>
+            <span x-show="f.unique" class="badge badge-ghost badge-xs">unique</span>
+            <span x-show="f.private" class="badge badge-ghost badge-xs">private</span>
+            <span x-show="f.readOnly" class="badge badge-ghost badge-xs">not editable</span>
+          </span>
+          <span class="flex shrink-0">
+            <button type="button" class="btn btn-ghost btn-xs btn-square" @click="move(i, -1)" :disabled="i === 0" :aria-label="'Move ' + f.name + ' up'">{{icon "up" "size-3.5"}}</button>
+            <button type="button" class="btn btn-ghost btn-xs btn-square" @click="move(i, 1)" :disabled="i === ct.fields.length - 1" :aria-label="'Move ' + f.name + ' down'">{{icon "down" "size-3.5"}}</button>
+            <button type="button" class="btn btn-ghost btn-xs btn-square" @click="editField(i)" :aria-label="'Edit ' + f.name">{{icon "pencil" "size-3.5"}}</button>
+            <button type="button" class="btn btn-ghost btn-xs btn-square text-error" @click="removeField(i)" :aria-label="'Remove ' + f.name">{{icon "trash" "size-3.5"}}</button>
+          </span>
+        </li>
+      </template>
+    </ul>
+    <div x-show="!ct.fields.length" class="px-6 py-12 text-center">
+      <p class="font-medium">No fields yet</p>
+      <p class="mt-1 text-sm text-base-content/65">Add a Short Text field such as <span class="font-mono">title</span> to get started.</p>
+      <button type="button" class="btn btn-primary btn-sm mt-4" @click="newField()">{{icon "plus"}} Add the first field</button>
+    </div>
+  </div>
+
+  <details class="mt-10 rounded-box border border-error/30 bg-base-100">
+    <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-error">Delete this content type</summary>
+    <form method="post" action="/admin/s/{{$site.Slug}}/builder/{{.Current.UID}}/delete" class="border-t border-error/20 px-4 py-4" data-confirm="Delete {{.Current.DisplayName}} and all {{index .Counts .Current.ID}} of its entries? This cannot be undone." data-confirm-ok="Delete content type">
+      {{template "csrf" $.CSRF}}
+      <p class="text-sm text-base-content/75">Deletes the type, its {{index .Counts .Current.ID}} {{plural (index .Counts .Current.ID) "entry" "entries"}} and its API endpoints. Types with relations to it must drop those fields first.</p>
+      <label class="mt-3 block max-w-sm">
+        <span class="mb-1.5 block text-sm">Type <span class="font-mono font-medium">{{.Current.UID}}</span> to confirm</span>
+        <input name="confirmName" autocomplete="off" class="input input-sm w-full font-mono" required>
+      </label>
+      <button class="btn btn-error btn-sm mt-3">Delete content type</button>
+    </form>
+  </details>
+
+  {{template "field-dialog" .}}
+  {{template "settings-dialog" .}}
+  {{template "plan-dialog" .}}
+</div>
+{{end}}
+{{end}}
+
+{{define "field-dialog"}}
+<dialog class="modal" x-ref="fieldDialog" @close="editing = null">
+  <div class="modal-box max-w-2xl p-0">
+    <template x-if="editing && !editing.type">
+      <div class="p-6">
+        <h3 class="text-lg font-semibold">Choose a field type</h3>
+        <div class="mt-4 grid gap-2 sm:grid-cols-2">
+          <template x-for="t in types" :key="t.Type">
+            <button type="button" class="flex items-center gap-3 rounded-box border border-base-300 p-3 text-left hover:border-primary hover:bg-secondary/40" @click="pickType(t.Type)">
+              <span class="grid h-9 w-11 shrink-0 place-items-center rounded-md bg-base-200 font-mono text-xs font-medium" x-text="glyph(t.Type)"></span>
+              <span><span class="block text-sm font-medium" x-text="t.Label"></span><span class="block text-xs text-base-content/65" x-text="t.Description"></span></span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+    <template x-if="editing && editing.type">
+      <form @submit.prevent="commitField()">
+        <div class="flex items-center gap-3 border-b border-base-300 px-6 py-4">
+          <span class="grid h-8 w-10 place-items-center rounded-md bg-base-200 font-mono text-xs font-medium" x-text="glyph(editing.type)"></span>
+          <div class="flex-1">
+            <h3 class="font-semibold" x-text="(editingIndex === null ? 'Add ' : 'Edit ') + typeLabel(editing.type) + ' field'"></h3>
+          </div>
+          <div role="tablist" class="tabs tabs-box tabs-sm">
+            <button type="button" role="tab" class="tab" :class="tab === 'basic' && 'tab-active'" @click="tab = 'basic'">Basic</button>
+            <button type="button" role="tab" class="tab" :class="tab === 'advanced' && 'tab-active'" @click="tab = 'advanced'">Advanced</button>
+          </div>
+        </div>
+        <div class="max-h-[65vh] overflow-y-auto px-6 py-5">
+          <div x-show="tab === 'basic'" class="grid gap-4 sm:grid-cols-2">
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium">Label</span>
+              <input x-model="editing.label" @input="autoName()" class="input w-full" placeholder="Title">
+            </label>
+            <label class="block">
+              <span class="mb-1.5 block text-sm font-medium">Name (API)</span>
+              <input x-model="editing.name" @input="nameTouched = true" required class="input w-full font-mono text-sm" :class="fieldError && 'input-error'" placeholder="title">
+              <p class="mt-1.5 text-sm text-error" x-show="fieldError" x-text="fieldError"></p>
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="mb-1.5 block text-sm font-medium">Description <span class="font-normal text-base-content/55">(shown to editors)</span></span>
+              <input x-model="editing.description" class="input w-full">
+            </label>
+
+            <template x-if="editing.type === 'number'">
+              <label class="block">
+                <span class="mb-1.5 block text-sm font-medium">Number format</span>
+                <select x-model="editing.format" class="select w-full"><option value="integer">Integer</option><option value="decimal">Decimal</option></select>
+              </label>
+            </template>
+            <template x-if="editing.type === 'enumeration'">
+              <label class="block sm:col-span-2">
+                <span class="mb-1.5 block text-sm font-medium">Values <span class="font-normal text-base-content/55">(one per line)</span></span>
+                <textarea x-model="enumText" rows="4" class="textarea w-full font-mono text-sm" placeholder="news&#10;guide&#10;review"></textarea>
+              </label>
+            </template>
+            <template x-if="editing.type === 'media'">
+              <div class="space-y-3 sm:col-span-2">
+                <label class="flex cursor-pointer items-center gap-3"><input type="checkbox" x-model="editing.multiple" class="toggle toggle-primary toggle-sm"><span class="text-sm">Allow multiple files</span></label>
+                <fieldset>
+                  <legend class="mb-1.5 text-sm font-medium">Allowed types <span class="font-normal text-base-content/55">(none checked = any)</span></legend>
+                  <div class="flex flex-wrap gap-4">
+                    <template x-for="c in ['images','videos','audios','files']"><label class="flex items-center gap-2 text-sm"><input type="checkbox" class="checkbox checkbox-sm" :value="c" x-model="editing.allowedTypes"><span x-text="c"></span></label></template>
+                  </div>
+                </fieldset>
+              </div>
+            </template>
+            <template x-if="editing.type === 'relation'">
+              <div class="space-y-3 sm:col-span-2">
+                <label class="block">
+                  <span class="mb-1.5 block text-sm font-medium">Related content type</span>
+                  <select x-model="editing.target" class="select w-full" required>
+                    <option value="">Choose…</option>
+                    <template x-for="t in relTargets()" :key="t.uid"><option :value="t.uid" x-text="t.name" :selected="t.uid === editing.target"></option></template>
+                  </select>
+                </label>
+                <fieldset>
+                  <legend class="mb-1.5 text-sm font-medium">Relation</legend>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    <template x-for="k in relationKinds" :key="k.value">
+                      <label class="flex cursor-pointer gap-3 rounded-box border border-base-300 p-3 has-checked:border-primary has-checked:bg-secondary/60">
+                        <input type="radio" class="radio radio-primary radio-sm mt-0.5" :value="k.value" x-model="editing.relation">
+                        <span><span class="block text-sm font-medium" x-text="k.label"></span><span class="block text-xs text-base-content/65" x-text="k.help(ct.displayName, targetName())"></span></span>
+                      </label>
+                    </template>
+                  </div>
+                </fieldset>
+              </div>
+            </template>
+          </div>
+
+          <div x-show="tab === 'advanced'" class="grid gap-4 sm:grid-cols-2">
+            <div class="space-y-3 sm:col-span-2">
+              <label class="flex cursor-pointer items-start gap-3"><input type="checkbox" x-model="editing.required" class="toggle toggle-primary toggle-sm mt-0.5"><span><span class="block text-sm font-medium">Required</span><span class="block text-xs text-base-content/65">Entries cannot be published without a value.</span></span></label>
+              <label class="flex cursor-pointer items-start gap-3" x-show="canUnique(editing.type)"><input type="checkbox" x-model="editing.unique" class="toggle toggle-primary toggle-sm mt-0.5"><span><span class="block text-sm font-medium">Unique</span><span class="block text-xs text-base-content/65">No two entries may share a value, e.g. slugs.</span></span></label>
+              <label class="flex cursor-pointer items-start gap-3"><input type="checkbox" x-model="editing.private" class="toggle toggle-primary toggle-sm mt-0.5"><span><span class="block text-sm font-medium">Private</span><span class="block text-xs text-base-content/65">Never returned by the API; visible in the admin only.</span></span></label>
+              <label class="flex cursor-pointer items-start gap-3"><input type="checkbox" :checked="!editing.readOnly" @change="editing.readOnly = !$event.target.checked" class="toggle toggle-primary toggle-sm mt-0.5"><span><span class="block text-sm font-medium">Editable in the admin</span><span class="block text-xs text-base-content/65">Turn off for values set only through the API.</span></span></label>
+            </div>
+            <template x-if="hasDefault(editing.type)">
+              <label class="block sm:col-span-2">
+                <span class="mb-1.5 block text-sm font-medium">Default value</span>
+                <template x-if="editing.type === 'boolean'">
+                  <select x-model="defaultText" class="select w-full"><option value="">None</option><option value="true">Yes</option><option value="false">No</option></select>
+                </template>
+                <template x-if="editing.type === 'enumeration'">
+                  <select x-model="defaultText" class="select w-full"><option value="">None</option><template x-for="v in enumValues()"><option :value="v" x-text="v"></option></template></select>
+                </template>
+                <template x-if="editing.type !== 'boolean' && editing.type !== 'enumeration'">
+                  <input x-model="defaultText" :type="editing.type === 'number' ? 'number' : (editing.type === 'date' ? 'date' : 'text')" step="any" class="input w-full" :placeholder="editing.type === 'datetime' ? '2024-05-01T09:00:00Z' : ''">
+                </template>
+              </label>
+            </template>
+            <template x-if="['string','text','email'].includes(editing.type)">
+              <div class="grid grid-cols-2 gap-3 sm:col-span-2">
+                <label class="block"><span class="mb-1.5 block text-sm font-medium">Minimum length</span><input type="number" min="0" x-model.number="editing.minLength" class="input w-full"></label>
+                <label class="block"><span class="mb-1.5 block text-sm font-medium">Maximum length</span><input type="number" min="1" x-model.number="editing.maxLength" class="input w-full" :placeholder="editing.type === 'string' ? '255' : ''"></label>
+              </div>
+            </template>
+            <template x-if="editing.type === 'number'">
+              <div class="grid grid-cols-2 gap-3 sm:col-span-2">
+                <label class="block"><span class="mb-1.5 block text-sm font-medium">Minimum</span><input type="number" step="any" x-model.number="editing.min" class="input w-full"></label>
+                <label class="block"><span class="mb-1.5 block text-sm font-medium">Maximum</span><input type="number" step="any" x-model.number="editing.max" class="input w-full"></label>
+              </div>
+            </template>
+            <template x-if="editing.type === 'string'">
+              <label class="block sm:col-span-2">
+                <span class="mb-1.5 block text-sm font-medium">Pattern <span class="font-normal text-base-content/55">(regular expression)</span></span>
+                <input x-model="editing.regex" class="input w-full font-mono text-sm" placeholder="^[a-z0-9-]+$">
+              </label>
+            </template>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 border-t border-base-300 px-6 py-4">
+          <button type="button" class="btn btn-ghost" @click="$refs.fieldDialog.close()">Cancel</button>
+          <button class="btn btn-primary" x-text="editingIndex === null ? 'Add field' : 'Update field'"></button>
+        </div>
+      </form>
+    </template>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{{end}}
+
+{{define "settings-dialog"}}
+<dialog class="modal" x-ref="settingsDialog">
+  <form class="modal-box max-w-lg" @submit.prevent="commitSettings()">
+    <h3 class="text-lg font-semibold">Content type settings</h3>
+    <label class="mt-5 block"><span class="mb-1.5 block text-sm font-medium">Display name</span><input x-model="draft.displayName" required class="input w-full"></label>
+    <div class="mt-4 grid grid-cols-2 gap-3">
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">API id (singular)</span><input :value="draft.uid" disabled class="input w-full font-mono text-sm"><span class="mt-1 block text-xs text-base-content/55">Cannot change</span></label>
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">API id (plural)</span><input x-model="draft.pluralName" required class="input w-full font-mono text-sm"></label>
+    </div>
+    <label class="mt-4 block"><span class="mb-1.5 block text-sm font-medium">Description</span><input x-model="draft.description" class="input w-full"></label>
+    <fieldset class="mt-4">
+      <legend class="mb-2 text-sm font-medium">Kind</legend>
+      <div class="flex gap-4 text-sm">
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm radio-primary" value="collection" x-model="draft.kind"> Collection</label>
+        <label class="flex items-center gap-2"><input type="radio" class="radio radio-sm radio-primary" value="single" x-model="draft.kind"> Single type</label>
+      </div>
+    </fieldset>
+    <label class="mt-4 flex cursor-pointer items-center gap-3"><input type="checkbox" x-model="draft.draftAndPublish" class="toggle toggle-primary toggle-sm"><span class="text-sm font-medium">Draft &amp; publish</span></label>
+    <div class="modal-action">
+      <button type="button" class="btn btn-ghost" @click="$refs.settingsDialog.close()">Cancel</button>
+      <button class="btn btn-primary">Apply</button>
+    </div>
+  </form>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{{end}}
+
+{{define "plan-dialog"}}
+<dialog class="modal" x-ref="planDialog">
+  <div class="modal-box max-w-xl">
+    <h3 class="text-lg font-semibold" x-text="planBlocked ? 'These changes cannot be applied yet' : 'Review the impact on existing content'"></h3>
+    <ul class="mt-4 space-y-2">
+      <template x-for="p in plan">
+        <li class="flex gap-3 rounded-box border p-3 text-sm"
+            :class="{ 'border-error/40 bg-error/5': p.level !== 'warning', 'border-warning/40 bg-warning/5': p.level === 'warning' }">
+          <span class="badge badge-sm shrink-0" :class="{ 'badge-error': p.level !== 'warning', 'badge-warning': p.level === 'warning' }"
+                x-text="p.level === 'blocked' ? 'Blocked' : (p.level === 'destructive' ? 'Deletes data' : 'Needs attention')"></span>
+          <span x-text="p.message"></span>
+        </li>
+      </template>
+    </ul>
+    <div class="modal-action">
+      <button type="button" class="btn btn-ghost" @click="$refs.planDialog.close()" x-text="planBlocked ? 'Back to editing' : 'Cancel'"></button>
+      <button type="button" class="btn btn-error" x-show="!planBlocked" @click="$refs.planDialog.close(); save(true)">Apply changes</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+{{end}}

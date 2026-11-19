@@ -1,0 +1,47 @@
+{{define "content"}}
+{{with .Data}}
+<a href="/admin/sites" class="mb-3 inline-flex items-center gap-1 text-sm text-base-content/65 hover:text-base-content">{{icon "left"}} Sites</a>
+<h1 class="mb-6 text-[28px] font-bold leading-tight">{{if .IsNew}}New site{{else}}{{.Site.Name}}{{end}}</h1>
+<form method="post" action="{{if .IsNew}}/admin/sites/new{{else}}/admin/sites/{{.Site.ID}}{{end}}" class="max-w-2xl rounded-box border border-base-300 bg-base-100 p-6"
+      x-data="{ name: {{jsonAttr .Site.Name}}, slug: {{jsonAttr .Site.Slug}}, touched: {{if .IsNew}}false{{else}}true{{end}} }">
+  {{template "csrf" $.CSRF}}
+  <div class="grid gap-4 sm:grid-cols-2">
+    <label class="block">
+      <span class="mb-1.5 block text-sm font-medium">Name</span>
+      <input name="name" x-model="name" @input="if (!touched) slug = Mino.slugify(name)" required class="input w-full {{if index .Errors "name"}}input-error{{end}}" placeholder="Acme Blog">
+      {{template "field-error" (index .Errors "name")}}
+    </label>
+    <label class="block">
+      <span class="mb-1.5 block text-sm font-medium">Slug</span>
+      <input name="slug" x-model="slug" @input="touched = true" required class="input w-full font-mono text-sm {{if index .Errors "slug"}}input-error{{end}}" placeholder="acme-blog">
+      {{template "field-error" (index .Errors "slug")}}
+    </label>
+    <label class="block sm:col-span-2">
+      <span class="mb-1.5 block text-sm font-medium">Description</span>
+      <input name="description" value="{{.Site.Description}}" class="input w-full" placeholder="What this website is for">
+    </label>
+  </div>
+  <p class="mt-3 text-sm text-base-content/65">API base URL: <code class="font-mono">/api/<span x-text="slug || 'slug'"></span></code>{{if not .IsNew}} — changing the slug changes every API URL of this site; update your frontends at the same time.{{end}}</p>
+  <div class="mt-6 flex justify-end gap-2">
+    <a href="/admin/sites" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary">{{if .IsNew}}Create site{{else}}Save changes{{end}}</button>
+  </div>
+</form>
+
+{{if not .IsNew}}
+<details class="mt-10 max-w-2xl rounded-box border border-error/30 bg-base-100">
+  <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-error">Delete this site</summary>
+  <form method="post" action="/admin/sites/{{.Site.ID}}/delete" class="border-t border-error/20 p-4"
+        data-confirm="Delete {{.Site.Name}} with {{.Stats.ContentTypes}} content types, {{.Stats.Entries}} entries and {{.Stats.Media}} files? This cannot be undone." data-confirm-ok="Delete site">
+    {{template "csrf" $.CSRF}}
+    <p class="text-sm text-base-content/75">Permanently deletes {{.Stats.ContentTypes}} content types, {{.Stats.Entries}} entries, {{.Stats.Media}} files (including stored files) and every API token of this site.</p>
+    <label class="mt-3 block max-w-sm">
+      <span class="mb-1.5 block text-sm">Type <span class="font-mono font-medium">{{.Site.Slug}}</span> to confirm</span>
+      <input name="confirmSlug" autocomplete="off" required class="input input-sm w-full font-mono">
+    </label>
+    <button class="btn btn-error btn-sm mt-3">Delete site</button>
+  </form>
+</details>
+{{end}}
+{{end}}
+{{end}}

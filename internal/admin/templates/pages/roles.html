@@ -1,0 +1,28 @@
+{{define "content"}}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <p class="mb-1 text-[13px] font-medium text-base-content/60">Installation</p>
+    <h1 class="text-[28px] font-bold leading-tight">Roles &amp; permissions</h1>
+    <p class="mt-1 text-sm text-base-content/65">Roles are shared by all sites. A user gets one role per site on their user page.</p>
+  </div>
+  <a href="/admin/roles/new" class="btn btn-primary">{{icon "plus"}} New role</a>
+</div>
+<ul class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+  <li class="rounded-box border border-dashed border-base-300 bg-base-100 p-4">
+    <div class="flex items-center gap-2"><span class="text-primary">{{icon "shield"}}</span><span class="font-semibold">Super Admin</span></div>
+    <p class="mt-2 text-sm text-base-content/70">Everything on every site, plus users, roles and settings. Set per user, not editable.</p>
+  </li>
+  {{range .Data.Roles}}
+  <li>
+    <a href="/admin/roles/{{.ID}}" class="block h-full rounded-box border border-base-300 bg-base-100 p-4 hover:border-primary/50">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-semibold">{{.Name}}</span>
+        <span class="text-xs text-base-content/60">{{.Members}} {{plural .Members "assignment" "assignments"}}</span>
+      </div>
+      {{if .Description}}<p class="mt-2 text-sm text-base-content/70">{{.Description}}</p>{{end}}
+      <p class="mt-3 text-xs text-base-content/55">{{len .Permissions}} {{plural (len .Permissions) "permission" "permissions"}}</p>
+    </a>
+  </li>
+  {{end}}
+</ul>
+{{end}}

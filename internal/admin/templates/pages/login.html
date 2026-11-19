@@ -1,0 +1,26 @@
+{{define "content"}}
+{{with .Data}}
+<div class="w-full max-w-sm">
+  <div class="mb-8 text-center">
+    <span class="mx-auto mb-4 grid size-12 place-items-center rounded-xl bg-primary text-primary-content">
+      <svg viewBox="0 0 32 32" class="size-7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 23V10l8 8 8-8v13"/></svg>
+    </span>
+    <h1 class="text-2xl font-bold">Log in to {{$.AppName}}</h1>
+    <p class="mt-1 text-sm text-base-content/70">Manage the content of all your sites.</p>
+  </div>
+  <form method="post" action="/admin/login" class="card border border-base-300 bg-base-100 p-6 shadow-sm">
+    {{template "form-alert" .Error}}
+    <input type="hidden" name="next" value="{{.Next}}">
+    <label class="mb-4 block">
+      <span class="mb-1.5 block text-sm font-medium">Email</span>
+      <input type="email" name="email" value="{{.Email}}" autocomplete="username" required autofocus class="input w-full">
+    </label>
+    <label class="mb-6 block">
+      <span class="mb-1.5 block text-sm font-medium">Password</span>
+      <input type="password" name="password" autocomplete="current-password" required class="input w-full">
+    </label>
+    <button class="btn btn-primary w-full">Log in</button>
+  </form>
+</div>
+{{end}}
+{{end}}

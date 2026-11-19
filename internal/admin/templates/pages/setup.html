@@ -1,0 +1,55 @@
+{{define "content"}}
+{{with .Data}}
+<div class="w-full max-w-lg">
+  <div class="mb-8">
+    <p class="mb-2 font-mono text-xs uppercase tracking-widest text-primary">First run</p>
+    <h1 class="text-3xl font-bold">Set up {{$.AppName}}</h1>
+    <p class="mt-2 text-base-content/70">Create the super admin account and the first website. You can add more sites and users afterwards.</p>
+  </div>
+  <form method="post" action="/admin/setup" class="card border border-base-300 bg-base-100 p-6 shadow-sm"
+        x-data="{ slugTouched: {{if .SiteSlug}}true{{else}}false{{end}}, siteName: {{jsonAttr .SiteName}}, slug: {{jsonAttr .SiteSlug}} }">
+    {{template "form-alert" .Error}}
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-base-content/60">Your account</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block sm:col-span-2">
+        <span class="mb-1.5 block text-sm font-medium">Name</span>
+        <input name="name" value="{{.Name}}" required autocomplete="name" class="input w-full {{if index .Errors "name"}}input-error{{end}}">
+        {{template "field-error" (index .Errors "name")}}
+      </label>
+      <label class="block sm:col-span-2">
+        <span class="mb-1.5 block text-sm font-medium">Email</span>
+        <input type="email" name="email" value="{{.Email}}" required autocomplete="email" class="input w-full {{if index .Errors "email"}}input-error{{end}}">
+        {{template "field-error" (index .Errors "email")}}
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-medium">Password</span>
+        <input type="password" name="password" required minlength="10" autocomplete="new-password" class="input w-full {{if index .Errors "password"}}input-error{{end}}">
+        {{template "field-error" (index .Errors "password")}}
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-medium">Confirm password</span>
+        <input type="password" name="confirm" required autocomplete="new-password" class="input w-full {{if index .Errors "confirm"}}input-error{{end}}">
+        {{template "field-error" (index .Errors "confirm")}}
+      </label>
+    </div>
+    <p class="mt-2 text-xs text-base-content/60">At least 10 characters.</p>
+
+    <h2 class="mt-8 mb-4 text-sm font-semibold uppercase tracking-wider text-base-content/60">First site</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-medium">Site name</span>
+        <input name="siteName" x-model="siteName" @input="if(!slugTouched) slug = Mino.slugify(siteName)" required placeholder="Acme Blog" class="input w-full {{if index .Errors "site.name"}}input-error{{end}}">
+        {{template "field-error" (index .Errors "site.name")}}
+      </label>
+      <label class="block">
+        <span class="mb-1.5 block text-sm font-medium">Slug</span>
+        <input name="siteSlug" x-model="slug" @input="slugTouched = true" required placeholder="acme-blog" class="input w-full font-mono text-sm {{if index .Errors "site.slug"}}input-error{{end}}">
+        {{template "field-error" (index .Errors "site.slug")}}
+      </label>
+    </div>
+    <p class="mt-2 text-xs text-base-content/60">The API for this site will live at <code class="font-mono">/api/<span x-text="slug || 'slug'"></span></code>.</p>
+    <button class="btn btn-primary mt-8 w-full">Create account and site</button>
+  </form>
+</div>
+{{end}}
+{{end}}

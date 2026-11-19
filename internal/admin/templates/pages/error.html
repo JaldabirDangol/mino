@@ -1,0 +1,10 @@
+{{define "content"}}
+{{with .Data}}
+<div class="mx-auto max-w-lg py-16 text-center">
+  <p class="font-mono text-sm text-base-content/50">{{.Status}}</p>
+  <h1 class="mt-2 text-3xl font-bold">{{$.Title}}</h1>
+  <p class="mt-3 text-base-content/70">{{.Message}}</p>
+  <a href="/admin/" class="btn btn-primary btn-sm mt-8">Go to the dashboard</a>
+</div>
+{{end}}
+{{end}}

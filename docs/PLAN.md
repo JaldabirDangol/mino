@@ -64,39 +64,41 @@ Review checkpoints: after phases **2**, **5** and **6**.
 
 ## Phase 3 — Media library
 
-- [ ] Storage interface; S3-compatible backend (AWS S3, R2, MinIO) as the main store,
+- [x] Storage interface; S3-compatible backend (AWS S3, R2, MinIO) as the main store,
       local disk fallback when no bucket is configured (dev/tests)
-- [ ] Media library per site
-- [ ] Upload validation: size limit, sniffed MIME allowlist (no SVG/HTML)
-- [ ] Metadata: name, size, MIME, width/height, alt text, caption
-- [ ] Browse, search, update, delete (with usage count)
-- [ ] Tests
+- [x] Media library per site
+- [x] Upload validation: size limit, sniffed MIME allowlist (no SVG/HTML)
+- [x] Metadata: name, size, MIME, width/height, alt text, caption
+- [x] Browse, search, update, delete (with usage count)
+- [x] Tests (incl. SigV4 against the AWS test vector and an S3 integration test)
 
 ## Phase 4 — Authentication & permissions
 
-- [ ] Argon2id password hashing
-- [ ] Sessions: hashed token in DB, secure cookie, idle + absolute expiry
-- [ ] CSRF tokens for admin mutations + Origin check
-- [ ] Login rate limiting
-- [ ] First-run setup (create Super Admin)
-- [ ] Super Admins see every site and manage users, roles, sites and global settings
-- [ ] Per-site membership: a user gets a role on each site they are assigned to
-- [ ] Roles: Site Admin, Editor, Author (own-entries-only rules); custom roles
-- [ ] Permissions for content types, entries, media, schema, API tokens
-- [ ] API tokens (read-only, full-access, custom) and public API permissions, per site
-- [ ] Tests
+- [x] Argon2id password hashing
+- [x] Sessions: hashed token in DB, secure cookie, idle + absolute expiry
+- [x] CSRF tokens for admin mutations + Origin check
+- [x] Login rate limiting
+- [x] First-run setup (create Super Admin)
+- [x] Super Admins see every site and manage users, roles, sites and global settings
+- [x] Per-site membership: a user gets a role on each site they are assigned to
+- [x] Roles: Site Admin, Editor, Author (own-entries-only rules); custom roles
+- [x] Permissions for content types, entries, media, schema, API tokens
+- [x] API tokens (read-only, full-access, custom) and public API permissions, per site
+- [x] Tests
 
 ## Phase 5 — REST API
 
-- [ ] `GET/POST /api/{site}/{plural}`, `GET/PUT/DELETE /api/{site}/{plural}/{id}`
-- [ ] `GET/PUT/DELETE /api/{site}/{single}`
-- [ ] Tokens only work for the site they were created in
-- [ ] Query: `pagination[page|pageSize]`, `sort`, `filters[...]`, `fields`, `populate`, `status`
-- [ ] Strapi-style response and error envelopes
-- [ ] Token / public permission checks
-- [ ] Upload endpoints
-- [ ] `docs/API.md`
-- [ ] Endpoint tests
+- [x] `GET/POST /api/{site}/{plural}`, `GET/PUT/DELETE /api/{site}/{plural}/{id}`
+- [x] `GET/PUT/DELETE /api/{site}/{single}`
+- [x] Tokens only work for the site they were created in
+- [x] Query: `pagination[page|pageSize]`, `sort`, `filters[...]`, `fields`, `populate`, `status`
+- [x] Strapi-style response and error envelopes
+- [x] Token / public permission checks
+- [x] Upload endpoints
+- [x] `docs/API.md`
+- [x] Endpoint tests
+- [x] CORS for browser frontends (`MINO_CORS_ORIGINS`)
+- Measured (release binary, 200 entries, 16 concurrent clients): RSS 19 MB idle, 22 MB peak.
 
 **Checkpoint 2 — review API contract.**
 

@@ -1,0 +1,31 @@
+{{define "content"}}
+{{with .Data}}
+<h1 class="mb-6 text-[28px] font-bold leading-tight">Your account</h1>
+<div class="grid max-w-4xl gap-6 lg:grid-cols-2">
+  <form method="post" action="/admin/account" class="rounded-box border border-base-300 bg-base-100 p-6">
+    {{template "csrf" $.CSRF}}
+    <h2 class="mb-4 font-semibold">Profile</h2>
+    <label class="mb-4 block"><span class="mb-1.5 block text-sm font-medium">Name</span><input name="name" value="{{.Name}}" required class="input w-full {{if index .Errors "name"}}input-error{{end}}">{{template "field-error" (index .Errors "name")}}</label>
+    <label class="mb-5 block"><span class="mb-1.5 block text-sm font-medium">Email</span><input type="email" name="email" value="{{.Email}}" required class="input w-full {{if index .Errors "email"}}input-error{{end}}">{{template "field-error" (index .Errors "email")}}</label>
+    <button class="btn btn-primary btn-sm">Save profile</button>
+  </form>
+  <form method="post" action="/admin/account/password" class="rounded-box border border-base-300 bg-base-100 p-6">
+    {{template "csrf" $.CSRF}}
+    <h2 class="mb-4 font-semibold">Password</h2>
+    <label class="mb-4 block"><span class="mb-1.5 block text-sm font-medium">Current password</span><input type="password" name="currentPassword" autocomplete="current-password" required class="input w-full {{if index .Errors "currentPassword"}}input-error{{end}}">{{template "field-error" (index .Errors "currentPassword")}}</label>
+    <label class="mb-4 block"><span class="mb-1.5 block text-sm font-medium">New password</span><input type="password" name="password" autocomplete="new-password" minlength="10" required class="input w-full {{if index .Errors "password"}}input-error{{end}}">{{template "field-error" (index .Errors "password")}}</label>
+    <label class="mb-5 block"><span class="mb-1.5 block text-sm font-medium">Confirm new password</span><input type="password" name="confirm" autocomplete="new-password" required class="input w-full {{if index .Errors "confirm"}}input-error{{end}}">{{template "field-error" (index .Errors "confirm")}}</label>
+    <button class="btn btn-primary btn-sm">Change password</button>
+    <p class="mt-3 text-xs text-base-content/60">Other devices are signed out after a change.</p>
+  </form>
+</div>
+{{if .Memberships}}
+<section class="mt-6 max-w-4xl rounded-box border border-base-300 bg-base-100 p-6">
+  <h2 class="mb-3 font-semibold">Your sites</h2>
+  <ul class="divide-y divide-base-300">
+    {{range .Memberships}}<li class="flex items-center gap-3 py-2" style="--site-hue: {{siteHue .SiteSlug}}"><span class="site-tile grid size-7 place-items-center rounded-md text-xs font-bold">{{initial .SiteName}}</span><a href="/admin/s/{{.SiteSlug}}/" class="flex-1 font-medium hover:text-primary">{{.SiteName}}</a><span class="text-sm text-base-content/65">{{.RoleName}}</span></li>{{end}}
+  </ul>
+</section>
+{{end}}
+{{end}}
+{{end}}

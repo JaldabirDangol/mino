@@ -1,0 +1,248 @@
+{{define "content"}}
+{{$site := .Site}}
+{{with .Data}}
+{{$base := printf "/admin/s/%s/content/%s" $site.Slug .Type.UID}}
+{{$single := eq .Type.Kind "single"}}
+<div class="grid gap-6 lg:grid-cols-[15rem_1fr]">
+  {{template "types-nav" (dict "View" $ "Current" .Type.UID)}}
+  <div class="min-w-0">
+    {{if not $single}}<a href="{{$base}}" class="mb-3 inline-flex items-center gap-1 text-sm text-base-content/65 hover:text-base-content">{{icon "left"}} {{.Type.DisplayName}}</a>{{end}}
+    <div class="mb-6 flex flex-wrap items-center gap-3">
+      <h1 class="min-w-0 truncate text-[28px] font-bold leading-tight">{{$.Title}}</h1>
+      {{if and .Entry .Type.DraftPublish}}{{template "status-badge" .Entry}}{{end}}
+      {{if .ReadOnly}}<span class="badge badge-ghost badge-sm">Read only</span>{{end}}
+    </div>
+
+    {{template "form-alert" .Error}}
+
+    <form id="entry-form" method="post" action="{{.Action}}" novalidate
+          x-data="{ dirty: false }" @input="dirty = true" @change="dirty = true" @submit="dirty = false"
+          x-init="window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = '' } })"
+          class="grid items-start gap-6 xl:grid-cols-[1fr_19rem]">
+      {{template "csrf" $.CSRF}}
+      <div class="rounded-box border border-base-300 bg-base-100 p-5 md:p-6">
+        {{if not .Fields}}
+          <p class="text-sm text-base-content/65">This content type has no fields yet.{{if $.Access.Can "schema.manage"}} <a class="link" href="/admin/s/{{$site.Slug}}/builder/{{.Type.UID}}">Add fields in the Content-Type Builder.</a>{{end}}</p>
+        {{end}}
+        <div class="grid gap-x-5 gap-y-6 md:grid-cols-2">
+          {{range .Fields}}{{template "field" (dict "F" . "RO" $.Data.ReadOnly "Site" $site "Type" $.Data.Type)}}{{end}}
+        </div>
+      </div>
+
+      <aside class="space-y-4 xl:sticky xl:top-6">
+        <div class="rounded-box border border-base-300 bg-base-100 p-4">
+          {{if .CanSave}}
+          <div class="flex flex-col gap-2">
+            {{if .Type.DraftPublish}}
+              {{if and .Entry .Entry.Published}}
+                <button name="action" value="save" class="btn btn-primary w-full">Save changes</button>
+                <p class="text-xs text-base-content/60">This entry is live. Saving updates it immediately.</p>
+              {{else}}
+                {{if .CanPublish}}<button name="action" value="publish" class="btn btn-primary w-full">Publish</button>{{end}}
+                <button name="action" value="save" class="btn {{if .CanPublish}}btn-outline{{else}}btn-primary{{end}} w-full">Save draft</button>
+                <p class="text-xs text-base-content/60">Drafts are not served by the API. Required fields are checked when you publish.</p>
+              {{end}}
+            {{else}}
+              <button name="action" value="save" class="btn btn-primary w-full">Save</button>
+            {{end}}
+          </div>
+          {{else}}
+          <p class="text-sm text-base-content/70">Your role can view this entry but not change it.</p>
+          {{end}}
+        </div>
+
+        {{with .Entry}}
+        <div class="rounded-box border border-base-300 bg-base-100 p-4 text-sm">
+          <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+            <dt class="text-base-content/60">ID</dt><dd class="font-mono">{{.ID}}</dd>
+            <dt class="text-base-content/60">Created</dt><dd>{{date .CreatedAt}}</dd>
+            <dt class="text-base-content/60">Updated</dt><dd>{{date .UpdatedAt}}</dd>
+            {{if .PublishedAt}}<dt class="text-base-content/60">Published</dt><dd>{{dateptr .PublishedAt}}</dd>{{end}}
+          </dl>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button type="button" class="btn btn-sm btn-ghost border-base-300" hx-get="{{$base}}/{{.ID}}/preview" hx-target="#modal-body">{{icon "code"}} API preview</button>
+          </div>
+        </div>
+        {{end}}
+      </aside>
+    </form>
+
+    {{with .Entry}}
+    <div class="mt-4 flex flex-wrap gap-2 xl:mr-[20.5rem]">
+      {{if and $.Data.Type.DraftPublish .Published $.Data.CanPublish}}
+      <form method="post" action="{{$base}}/{{.ID}}/unpublish" data-confirm="Unpublish this entry? The API will stop serving it until it is published again." data-confirm-ok="Unpublish" data-confirm-safe>{{template "csrf" $.CSRF}}<button class="btn btn-sm btn-ghost border-base-300">Unpublish</button></form>
+      {{end}}
+      {{if and (not $single) $.Data.CanCreate}}
+      <form method="post" action="{{$base}}/{{.ID}}/duplicate">{{template "csrf" $.CSRF}}<button class="btn btn-sm btn-ghost border-base-300">{{icon "copy"}} Duplicate</button></form>
+      {{end}}
+      {{if $.Data.CanDelete}}
+      <form method="post" action="{{$base}}/{{.ID}}/delete" data-confirm="Delete this entry permanently? Links from other entries to it are removed too." data-confirm-ok="Delete entry">{{template "csrf" $.CSRF}}<button class="btn btn-sm btn-ghost text-error">{{icon "trash"}} Delete</button></form>
+      {{end}}
+    </div>
+    {{end}}
+  </div>
+</div>
+<script src="{{asset "editor.js"}}" defer></script>
+{{end}}
+{{end}}
+
+{{define "field-label"}}
+<span class="mb-1.5 flex items-baseline gap-2">
+  <span class="text-sm font-medium">{{.F.Field.DisplayLabel}}{{if .F.Field.Required}}<span class="text-error" aria-hidden="true"> *</span>{{end}}</span>
+  {{if .F.Field.Private}}<span class="badge badge-ghost badge-xs" title="Not returned by the API">private</span>{{end}}
+  {{if .F.Field.ReadOnly}}<span class="badge badge-ghost badge-xs">not editable</span>{{end}}
+</span>
+{{end}}
+
+{{define "field-help"}}
+{{if .F.Field.Description}}<p class="mt-1.5 text-xs text-base-content/60">{{.F.Field.Description}}</p>{{end}}
+{{template "field-error" .F.Error}}
+{{end}}
+
+{{define "field"}}
+{{$f := .F.Field}}{{$id := printf "f-%s" $f.Name}}{{$ro := or .RO $f.ReadOnly}}
+{{$wide := or (eq $f.Type "text") (eq $f.Type "richtext") (eq $f.Type "json") (eq $f.Type "media") (eq $f.Type "relation")}}
+<div class="{{if $wide}}md:col-span-2{{end}}">
+{{if eq $f.Type "boolean"}}
+  {{template "field-label" .}}
+  <input type="hidden" name="{{$f.Name}}" value="false" {{if $ro}}disabled{{end}}>
+  <label class="flex cursor-pointer items-center gap-3" x-data="{ on: {{if .F.Checked}}true{{else}}false{{end}} }">
+    <input id="{{$id}}" type="checkbox" name="{{$f.Name}}" value="true" class="toggle toggle-primary" x-model="on" {{if .F.Checked}}checked{{end}} {{if $ro}}disabled{{end}}>
+    <span class="text-sm text-base-content/75" x-text="on ? 'Yes' : 'No'">{{if .F.Checked}}Yes{{else}}No{{end}}</span>
+  </label>
+  {{template "field-help" .}}
+{{else if eq $f.Type "relation"}}
+  {{template "field-label" .}}
+  {{template "relation-input" .}}
+  {{template "field-help" .}}
+{{else if eq $f.Type "media"}}
+  {{template "field-label" .}}
+  {{template "media-input" .}}
+  {{template "field-help" .}}
+{{else}}
+  <label for="{{$id}}">{{template "field-label" .}}</label>
+  {{if eq $f.Type "text"}}
+    <textarea id="{{$id}}" name="{{$f.Name}}" rows="5" class="textarea w-full {{if .F.Error}}textarea-error{{end}}" {{if $ro}}disabled{{end}} {{with $f.MaxLength}}maxlength="{{.}}"{{end}}>{{.F.Value}}</textarea>
+  {{else if eq $f.Type "richtext"}}
+    <input type="hidden" name="{{$f.Name}}" value="{{.F.Value}}" x-ref="input" id="{{$id}}">
+    <div class="overflow-hidden rounded-field border {{if .F.Error}}border-error{{else}}border-base-300{{end}} bg-base-100"
+         x-data x-init="Mino.richText($el, document.getElementById({{jsonAttr $id}}), { readOnly: {{if $ro}}true{{else}}false{{end}}, label: {{jsonAttr $f.DisplayLabel}} })"></div>
+  {{else if eq $f.Type "json"}}
+    <textarea id="{{$id}}" name="{{$f.Name}}" rows="7" spellcheck="false" class="textarea w-full font-mono text-[13px] {{if .F.Error}}textarea-error{{end}}" {{if $ro}}disabled{{end}} placeholder='{"key": "value"}'>{{.F.Value}}</textarea>
+  {{else if eq $f.Type "enumeration"}}
+    <select id="{{$id}}" name="{{$f.Name}}" class="select w-full {{if .F.Error}}select-error{{end}}" {{if $ro}}disabled{{end}}>
+      <option value="">Choose…</option>
+      {{range $f.Enum}}<option value="{{.}}" {{if eq . $.F.Value}}selected{{end}}>{{.}}</option>{{end}}
+    </select>
+  {{else if eq $f.Type "number"}}
+    <input id="{{$id}}" type="number" name="{{$f.Name}}" value="{{.F.Value}}" step="{{if eq $f.Format "integer"}}1{{else}}any{{end}}" {{with $f.Min}}min="{{.}}"{{end}} {{with $f.Max}}max="{{.}}"{{end}} class="input w-full tabular-nums {{if .F.Error}}input-error{{end}}" {{if $ro}}disabled{{end}}>
+  {{else if eq $f.Type "date"}}
+    <input id="{{$id}}" type="date" name="{{$f.Name}}" value="{{.F.Value}}" class="input w-full {{if .F.Error}}input-error{{end}}" {{if $ro}}disabled{{end}}>
+  {{else if eq $f.Type "datetime"}}
+    <label class="input w-full {{if .F.Error}}input-error{{end}}">
+      <input id="{{$id}}" type="datetime-local" name="{{$f.Name}}" value="{{.F.Value}}" class="grow" {{if $ro}}disabled{{end}}>
+      <span class="font-mono text-xs text-base-content/50">UTC</span>
+    </label>
+  {{else}}
+    <input id="{{$id}}" type="{{if eq $f.Type "email"}}email{{else}}text{{end}}" name="{{$f.Name}}" value="{{.F.Value}}" {{with $f.MaxLength}}maxlength="{{.}}"{{end}} class="input w-full {{if .F.Error}}input-error{{end}}" {{if $ro}}disabled{{end}}>
+  {{end}}
+  {{template "field-help" .}}
+{{end}}
+</div>
+{{end}}
+
+{{define "relation-input"}}
+{{$f := .F.Field}}{{$ro := or .RO $f.ReadOnly}}
+<div x-data="Mino.relationField({ name: {{jsonAttr $f.Name}}, multiple: {{if $f.IsMultiple}}true{{else}}false{{end}}, items: {{jsonAttr .F.Links}} })" class="rounded-field border {{if .F.Error}}border-error{{else}}border-base-300{{end}} bg-base-100 p-2">
+  <template x-for="it in items" :key="it.id"><input type="hidden" :name="name" :value="it.id"></template>
+  <ul class="flex flex-col gap-1" x-show="items.length">
+    <template x-for="(it, i) in items" :key="it.id">
+      <li class="flex items-center gap-2 rounded-lg bg-base-200/70 px-2.5 py-1.5 text-sm">
+        <span class="font-mono text-xs text-base-content/50" x-text="'#' + it.id"></span>
+        <span class="min-w-0 flex-1 truncate" x-text="it.label"></span>
+        {{if not $ro}}
+        <template x-if="multiple && items.length > 1">
+          <span class="flex">
+            <button type="button" class="btn btn-ghost btn-xs btn-square" @click="move(i, -1)" :disabled="i === 0" aria-label="Move up">{{icon "up" "size-3.5"}}</button>
+            <button type="button" class="btn btn-ghost btn-xs btn-square" @click="move(i, 1)" :disabled="i === items.length - 1" aria-label="Move down">{{icon "down" "size-3.5"}}</button>
+          </span>
+        </template>
+        <button type="button" class="btn btn-ghost btn-xs btn-square" @click="remove(i)" :aria-label="'Remove ' + it.label">{{icon "x" "size-3.5"}}</button>
+        {{end}}
+      </li>
+    </template>
+  </ul>
+  {{if not $ro}}
+  <div class="relative" :class="items.length ? 'mt-2' : ''" x-show="multiple || !items.length" @click.outside="open = false">
+    <label class="input input-sm w-full border-dashed">
+      {{icon "search" "size-3.5 opacity-60"}}
+      <input type="search" name="q" autocomplete="off" placeholder="Search {{$f.Target}} entries to link" aria-label="Search entries to link"
+             @focus="open = true" @keydown.escape="open = false"
+             hx-get="/admin/s/{{.Site.Slug}}/content/{{.Type.UID}}/options?field={{$f.Name}}" hx-trigger="focus once, input changed delay:250ms"
+             hx-target="next .relation-options" hx-include="this" hx-sync="this:replace">
+    </label>
+    <div class="relation-options absolute inset-x-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-box border border-base-300 bg-base-100 p-1 shadow-lg" x-show="open" x-cloak></div>
+  </div>
+  {{else}}
+  <p x-show="!items.length" class="px-1 text-sm text-base-content/50">Not linked</p>
+  {{end}}
+</div>
+<p class="mt-1 text-xs text-base-content/55">{{if eq $f.Relation "oneToOne"}}Links one {{$f.Target}}; that {{$f.Target}} cannot be linked from another entry.{{else if eq $f.Relation "oneToMany"}}Links several {{$f.Target}} entries; each belongs only to this entry.{{else if eq $f.Relation "manyToOne"}}Links one {{$f.Target}}.{{else}}Links any number of {{$f.Target}} entries.{{end}}</p>
+{{end}}
+
+{{define "relation-options"}}
+{{with .Data}}
+{{range .Items}}
+<button type="button" class="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm hover:bg-base-200"
+        @click="add({ id: {{.ID}}, label: {{jsonAttr .Label}} }); open = false">
+  <span class="font-mono text-xs text-base-content/50">#{{.ID}}</span><span class="truncate">{{.Label}}</span>
+</button>
+{{else}}
+<p class="px-2.5 py-2 text-sm text-base-content/60">No {{.Target.DisplayName}} entries found.</p>
+{{end}}
+{{end}}
+{{end}}
+
+{{define "media-input"}}
+{{$f := .F.Field}}{{$ro := or .RO $f.ReadOnly}}
+<div x-data="Mino.mediaField({ name: {{jsonAttr $f.Name}}, multiple: {{if $f.Multiple}}true{{else}}false{{end}}, items: {{jsonAttr .F.Links}} })"
+     @media-pick.window="if ($event.detail.field === name) add($event.detail.item)">
+  <template x-for="it in items" :key="it.id"><input type="hidden" :name="name" :value="it.id"></template>
+  <div class="flex flex-wrap gap-3">
+    <template x-for="(it, i) in items" :key="it.id">
+      <figure class="group relative w-32 overflow-hidden rounded-lg border border-base-300 bg-base-200">
+        <template x-if="it.thumb"><img :src="it.thumb" :alt="it.label" class="h-24 w-full object-cover" loading="lazy"></template>
+        <template x-if="!it.thumb"><div class="grid h-24 place-items-center text-base-content/50">{{icon "file" "size-7"}}</div></template>
+        <figcaption class="truncate px-2 py-1 text-xs" x-text="it.label"></figcaption>
+        {{if not $ro}}<button type="button" class="btn btn-circle btn-xs absolute top-1 right-1 opacity-90" @click="remove(i)" :aria-label="'Remove ' + it.label">{{icon "x" "size-3"}}</button>{{end}}
+      </figure>
+    </template>
+    {{if not $ro}}
+    <button type="button" x-show="multiple || !items.length"
+            class="grid h-[7.6rem] w-32 place-items-center rounded-lg border border-dashed border-base-300 text-sm text-base-content/65 hover:border-primary hover:text-primary"
+            hx-get="/admin/s/{{.Site.Slug}}/media/picker?field={{$f.Name}}{{if $f.Multiple}}&multiple=1{{end}}{{range $f.AllowedTypes}}&accept={{.}}{{end}}" hx-target="#modal-body">
+      <span class="flex flex-col items-center gap-1">{{icon "plus" "size-5"}}<span x-text="items.length ? 'Add more' : 'Add media'">Add media</span></span>
+    </button>
+    {{end}}
+  </div>
+  {{if $f.AllowedTypes}}<p class="mt-1.5 text-xs text-base-content/55">Accepts: {{range $i, $t := $f.AllowedTypes}}{{if $i}}, {{end}}{{$t}}{{end}}</p>{{end}}
+</div>
+{{end}}
+
+{{define "preview"}}
+{{with .Data}}
+<div class="modal-box max-w-3xl">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h3 class="text-lg font-semibold">API preview</h3>
+      <p class="mt-1 font-mono text-xs text-base-content/65">GET {{$.APIBase}}{{.Path}}</p>
+    </div>
+    <form method="dialog"><button class="btn btn-ghost btn-sm btn-square" aria-label="Close">{{icon "x"}}</button></form>
+  </div>
+  {{if .Draft}}<div class="alert alert-warning mt-4 border text-sm">{{icon "alert"}}<span>This entry is a draft. The public API returns 404 for it until it is published.</span></div>{{end}}
+  <pre class="mt-4 max-h-[60vh] overflow-auto rounded-lg bg-neutral p-4 font-mono text-[12.5px] leading-relaxed text-neutral-content">{{json .Body}}</pre>
+  <p class="mt-3 text-xs text-base-content/60">Private fields are left out, exactly as the API does.</p>
+</div>
+<form method="dialog" class="modal-backdrop"><button>close</button></form>
+{{end}}
+{{end}}

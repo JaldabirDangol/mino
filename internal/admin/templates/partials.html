@@ -1,0 +1,82 @@
+{{/* Shared building blocks. */}}
+
+{{define "csrf"}}<input type="hidden" name="_csrf" value="{{.}}">{{end}}
+
+{{define "field-error"}}{{if .}}<p class="mt-1.5 text-sm text-error" role="alert">{{.}}</p>{{end}}{{end}}
+
+{{define "form-alert"}}{{if .}}
+<div role="alert" class="alert alert-error mb-5 border">{{icon "alert" "size-5"}}<span>{{.}}</span></div>
+{{end}}{{end}}
+
+{{define "status-badge"}}
+{{if .Published}}<span class="badge badge-sm gap-1 border-success/30 bg-success/10 font-medium text-success"><span class="size-1.5 rounded-full bg-success"></span>Published</span>
+{{else}}<span class="badge badge-sm gap-1 border-warning/30 bg-warning/10 font-medium text-warning"><span class="size-1.5 rounded-full bg-warning"></span>Draft</span>{{end}}
+{{end}}
+
+{{define "empty"}}
+<div class="flex flex-col items-center rounded-box border border-dashed border-base-300 bg-base-100 px-6 py-14 text-center">
+  <span class="mb-4 grid size-12 place-items-center rounded-full bg-base-200 text-base-content/60">{{icon .Icon "size-6"}}</span>
+  <h3 class="text-base font-semibold">{{.Title}}</h3>
+  {{if .Text}}<p class="mt-1.5 max-w-md text-sm text-base-content/70">{{.Text}}</p>{{end}}
+  {{if .Href}}<a href="{{.Href}}" class="btn btn-primary btn-sm mt-5">{{icon "plus"}} {{.Action}}</a>{{end}}
+</div>
+{{end}}
+
+{{/* pager renders a pager value built by makePager. */}}
+{{define "pager"}}
+{{if .Links}}
+<nav class="join" aria-label="Pagination">
+  {{if .Prev}}<a class="join-item btn btn-sm" href="{{.Prev}}" {{if .Target}}hx-get="{{.Prev}}" hx-target="{{.Target}}" hx-push-url="{{.Push}}"{{end}} aria-label="Previous page">{{icon "left"}}</a>{{end}}
+  {{range .Links}}
+    {{if not .Href}}<span class="join-item btn btn-sm btn-disabled">…</span>
+    {{else}}<a class="join-item btn btn-sm {{if .Current}}btn-active{{end}}" href="{{.Href}}" {{if $.Target}}hx-get="{{.Href}}" hx-target="{{$.Target}}" hx-push-url="{{$.Push}}"{{end}}{{if .Current}} aria-current="page"{{end}}>{{.Num}}</a>{{end}}
+  {{end}}
+  {{if .Next}}<a class="join-item btn btn-sm" href="{{.Next}}" {{if .Target}}hx-get="{{.Next}}" hx-target="{{.Target}}" hx-push-url="{{.Push}}"{{end}} aria-label="Next page">{{icon "right"}}</a>{{end}}
+</nav>
+{{end}}
+{{end}}
+
+{{/* types-nav is the Content Manager's list of content types. */}}
+{{define "types-nav"}}
+{{$v := .View}}{{$cur := .Current}}
+<aside class="lg:sticky lg:top-6 lg:self-start" x-data="{ q: '' }" aria-label="Content types">
+  <label class="input input-sm mb-3 w-full">{{icon "search" "size-4 opacity-60"}}<input type="search" x-model="q" placeholder="Find a type" aria-label="Find a content type"></label>
+  {{$hasC := false}}{{$hasS := false}}
+  {{range $v.Types}}{{if eq .Kind "collection"}}{{$hasC = true}}{{else}}{{$hasS = true}}{{end}}{{end}}
+  {{if $hasC}}
+  <p class="mb-1 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/50">Collections</p>
+  <ul class="menu w-full gap-0.5 p-0">
+    {{range $v.Types}}{{if eq .Kind "collection"}}
+    <li x-show="!q || {{jsonAttr (lower .DisplayName)}}.includes(q.toLowerCase())"><a href="/admin/s/{{$v.Site.Slug}}/content/{{.UID}}" class="rounded-lg py-1.5 {{if eq .UID $cur}}menu-active bg-secondary font-medium text-secondary-content{{end}}">{{.DisplayName}}</a></li>
+    {{end}}{{end}}
+  </ul>
+  {{end}}
+  {{if $hasS}}
+  <p class="mt-4 mb-1 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/50">Single types</p>
+  <ul class="menu w-full gap-0.5 p-0">
+    {{range $v.Types}}{{if eq .Kind "single"}}
+    <li x-show="!q || {{jsonAttr (lower .DisplayName)}}.includes(q.toLowerCase())"><a href="/admin/s/{{$v.Site.Slug}}/content/{{.UID}}" class="rounded-lg py-1.5 {{if eq .UID $cur}}menu-active bg-secondary font-medium text-secondary-content{{end}}">{{.DisplayName}}</a></li>
+    {{end}}{{end}}
+  </ul>
+  {{end}}
+</aside>
+{{end}}
+
+{{define "copy"}}
+<button type="button" class="btn btn-ghost btn-xs gap-1" x-data="{done:false}"
+        @click="navigator.clipboard.writeText({{jsonAttr .}}); done=true; setTimeout(()=>done=false,1500)"
+        :aria-label="done ? 'Copied' : 'Copy'">
+  <span x-show="!done">{{icon "copy" "size-3.5"}}</span><span x-show="done" x-cloak>{{icon "check" "size-3.5"}}</span>
+  <span x-text="done ? 'Copied' : 'Copy'">Copy</span>
+</button>
+{{end}}
+
+{{define "page-title"}}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+  <div class="min-w-0">
+    {{if .Eyebrow}}<p class="mb-1 text-[13px] font-medium text-base-content/60">{{.Eyebrow}}</p>{{end}}
+    <h1 class="truncate text-[26px] font-bold leading-tight md:text-[28px]">{{.Title}}</h1>
+    {{if .Sub}}<p class="mt-1 text-sm text-base-content/70">{{.Sub}}</p>{{end}}
+  </div>
+</div>
+{{end}}

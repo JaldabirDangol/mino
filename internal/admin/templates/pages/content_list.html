@@ -1,0 +1,136 @@
+{{define "content"}}
+{{$site := .Site}}
+{{with .Data}}
+<div class="grid gap-6 lg:grid-cols-[15rem_1fr]">
+  {{template "types-nav" (dict "View" $ "Current" .Type.UID)}}
+  <div class="min-w-0">
+    <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div class="min-w-0">
+        <p class="mb-1 text-[13px] font-medium text-base-content/60">Content Manager</p>
+        <h1 class="truncate text-[28px] font-bold leading-tight">{{.Type.DisplayName}}</h1>
+        <p class="mt-1 text-sm text-base-content/65"><span class="tabular-nums">{{.Result.Total}}</span> {{plural .Result.Total "entry" "entries"}} · <span class="font-mono text-xs">/api/{{$site.Slug}}/{{.Type.PluralName}}</span></p>
+      </div>
+      {{if .CanCreate}}<a href="/admin/s/{{$site.Slug}}/content/{{.Type.UID}}/new" class="btn btn-primary">{{icon "plus"}} Create new entry</a>{{end}}
+    </div>
+
+    <form id="list-filters" class="mb-4 flex flex-wrap items-center gap-2" role="search"
+          hx-get="/admin/s/{{$site.Slug}}/content/{{.Type.UID}}" hx-target="#entries" hx-push-url="true"
+          hx-trigger="input changed delay:300ms from:input[name=q], change">
+      <label class="input input-sm w-full sm:w-64">
+        {{icon "search" "size-4 opacity-60"}}
+        <input type="search" name="q" value="{{.Params.Search}}" placeholder="Search {{lower .Type.DisplayName}} entries" aria-label="Search entries">
+      </label>
+      {{if .Type.DraftPublish}}
+      <select name="status" class="select select-sm w-auto" aria-label="Status">
+        <option value="">All statuses</option>
+        <option value="draft" {{if eq .Params.Status "draft"}}selected{{end}}>Drafts</option>
+        <option value="published" {{if eq .Params.Status "published"}}selected{{end}}>Published</option>
+      </select>
+      {{end}}
+      {{if .Filterable}}
+      <div class="flex items-center gap-1 rounded-field border border-base-300 bg-base-100 p-0.5" x-data="{ op: {{jsonAttr .Params.FilterOp}} }">
+        <select name="ff" class="select select-ghost select-sm w-auto" aria-label="Filter field">
+          <option value="">Filter by…</option>
+          {{range .Filterable}}<option value="{{.Name}}" {{if eq .Name $.Data.Params.FilterField}}selected{{end}}>{{.DisplayLabel}}</option>{{end}}
+          <option value="createdAt" {{if eq .Params.FilterField "createdAt"}}selected{{end}}>Created</option>
+          <option value="updatedAt" {{if eq .Params.FilterField "updatedAt"}}selected{{end}}>Updated</option>
+        </select>
+        <select name="fo" class="select select-ghost select-sm w-auto" x-model="op" aria-label="Filter condition">
+          <option value="$containsi">contains</option>
+          <option value="$eq">is</option>
+          <option value="$ne">is not</option>
+          <option value="$gt">greater than</option>
+          <option value="$lt">less than</option>
+          <option value="$null">is empty</option>
+          <option value="$notNull">is not empty</option>
+        </select>
+        <input name="fv" value="{{.Params.FilterValue}}" x-show="op !== '$null' && op !== '$notNull'" class="input input-ghost input-sm w-36" placeholder="Value" aria-label="Filter value">
+      </div>
+      {{end}}
+      <span class="loading loading-spinner loading-xs htmx-indicator text-base-content/50" aria-hidden="true"></span>
+      {{if or .Params.Search .Params.Status .Params.FilterField}}<a href="/admin/s/{{$site.Slug}}/content/{{.Type.UID}}" class="btn btn-ghost btn-sm">Clear</a>{{end}}
+    </form>
+
+    <div id="entries">{{template "entries" $}}</div>
+  </div>
+</div>
+{{end}}
+{{end}}
+
+{{define "entries"}}
+{{$site := .Site}}
+{{with .Data}}
+{{$base := printf "/admin/s/%s/content/%s" $site.Slug .Type.UID}}
+{{if .QueryError}}<div role="alert" class="alert alert-warning mb-3 border text-sm">{{icon "alert"}}<span>Filter ignored: {{.QueryError}}</span></div>{{end}}
+{{if not .Rows}}
+  {{if or .Params.Search .Params.Status .Params.FilterField}}
+    {{template "empty" (dict "Icon" "search" "Title" "No matching entries" "Text" "Try a different search or clear the filters.")}}
+  {{else if .CanCreate}}
+    {{template "empty" (dict "Icon" "content" "Title" (printf "No %s yet" (lower .Type.DisplayName)) "Text" "Entries you create here are served by the API once published." "Href" (printf "%s/new" $base) "Action" "Create the first entry")}}
+  {{else}}
+    {{template "empty" (dict "Icon" "content" "Title" "No entries yet")}}
+  {{end}}
+{{else}}
+<div class="overflow-x-auto rounded-box border border-base-300 bg-base-100">
+  <table class="table">
+    <thead>
+      <tr class="text-xs uppercase tracking-wider text-base-content/60">
+        {{template "sort-th" (dict "Data" . "Base" $base "Field" "id" "Label" "ID" "Class" "w-16")}}
+        {{range .Columns}}
+          {{if .Sortable}}{{template "sort-th" (dict "Data" $.Data "Base" $base "Field" .Field.Name "Label" .Field.DisplayLabel)}}
+          {{else}}<th>{{.Field.DisplayLabel}}</th>{{end}}
+        {{end}}
+        {{if .Type.DraftPublish}}<th>Status</th>{{end}}
+        {{template "sort-th" (dict "Data" . "Base" $base "Field" "updatedAt" "Label" "Updated")}}
+        <th class="w-12"><span class="sr-only">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Rows}}
+      {{$e := .Entry}}
+      <tr class="hover:bg-base-200/50">
+        <td class="font-mono text-xs text-base-content/60">{{$e.ID}}</td>
+        {{range $i, $c := $.Data.Columns}}
+        <td class="{{if eq $i 0}}max-w-xs font-medium{{else}}max-w-[14rem] text-base-content/80{{end}}">
+          {{if eq $i 0}}<a href="{{$base}}/{{$e.ID}}" class="block truncate hover:text-primary">{{with cell $c.Field (index $e.Data $c.Field.Name)}}{{.}}{{else}}<span class="text-base-content/40">Untitled</span>{{end}}</a>
+          {{else}}<span class="block truncate">{{cell $c.Field (index $e.Data $c.Field.Name)}}</span>{{end}}
+        </td>
+        {{else}}
+        <td><a href="{{$base}}/{{$e.ID}}" class="font-medium hover:text-primary">{{title $e}}</a></td>
+        {{end}}
+        {{if $.Data.Type.DraftPublish}}<td>{{template "status-badge" $e}}</td>{{end}}
+        <td class="whitespace-nowrap text-sm text-base-content/65" title="{{date $e.UpdatedAt}}">{{ago $e.UpdatedAt}}</td>
+        <td>
+          <div class="dropdown dropdown-end">
+            <button type="button" tabindex="0" class="btn btn-ghost btn-sm btn-square" aria-label="Actions for entry {{$e.ID}}">
+              <svg viewBox="0 0 24 24" class="size-4" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+            </button>
+            <ul tabindex="0" class="menu dropdown-content z-20 w-44 rounded-box border border-base-300 bg-base-100 p-1.5 shadow-lg">
+              <li><a href="{{$base}}/{{$e.ID}}">{{icon "pencil"}} {{if .CanEdit}}Edit{{else}}View{{end}}</a></li>
+              {{if $.Data.CanCreate}}<li><form method="post" action="{{$base}}/{{$e.ID}}/duplicate" class="p-0">{{template "csrf" $.CSRF}}<button class="flex w-full items-center gap-2 px-3 py-1.5">{{icon "copy"}} Duplicate</button></form></li>{{end}}
+              {{if .CanDelete}}<li><form method="post" action="{{$base}}/{{$e.ID}}/delete" class="p-0" data-confirm="Delete “{{title $e}}”? This cannot be undone." data-confirm-ok="Delete entry">{{template "csrf" $.CSRF}}<button class="flex w-full items-center gap-2 px-3 py-1.5 text-error">{{icon "trash"}} Delete</button></form></li>{{end}}
+            </ul>
+          </div>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+<div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-base-content/65">
+  <span>Showing {{add .Offset 1}}–{{add .Offset (len .Rows)}} of {{.Result.Total}}</span>
+  {{template "pager" .Pager}}
+</div>
+{{end}}
+{{end}}
+{{end}}
+
+{{define "sort-th"}}
+{{$p := .Data.Params}}{{$s := $p.SortList .Field}}{{$href := $p.URL .Base "sort" (index $s 0) "page" ""}}
+<th class="{{.Class}}" aria-sort="{{index $s 2}}">
+  <a href="{{$href}}" hx-get="{{$href}}" hx-target="#entries" hx-push-url="true" class="inline-flex items-center gap-1 hover:text-base-content">
+    {{.Label}}
+    {{with index $s 1}}{{if eq . "asc"}}{{icon "up" "size-3.5"}}{{else}}{{icon "down" "size-3.5"}}{{end}}{{end}}
+  </a>
+</th>
+{{end}}

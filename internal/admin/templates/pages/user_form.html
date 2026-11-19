@@ -1,0 +1,65 @@
+{{define "content"}}
+{{with .Data}}
+<a href="/admin/users" class="mb-3 inline-flex items-center gap-1 text-sm text-base-content/65 hover:text-base-content">{{icon "left"}} Users</a>
+<h1 class="mb-6 text-[28px] font-bold leading-tight">{{if .IsNew}}Add user{{else}}{{.Input.Name}}{{end}}</h1>
+{{template "form-alert" .ErrorText}}
+<form method="post" action="{{if .IsNew}}/admin/users/new{{else}}/admin/users/{{.Edit.ID}}{{end}}" class="grid max-w-4xl gap-6" x-data="{ superAdmin: {{if .Input.SuperAdmin}}true{{else}}false{{end}} }">
+  {{template "csrf" $.CSRF}}
+  <section class="rounded-box border border-base-300 bg-base-100 p-6">
+    <h2 class="mb-4 font-semibold">Profile</h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">Name</span><input name="name" value="{{.Input.Name}}" required class="input w-full {{if index .Errors "name"}}input-error{{end}}">{{template "field-error" (index .Errors "name")}}</label>
+      <label class="block"><span class="mb-1.5 block text-sm font-medium">Email</span><input type="email" name="email" value="{{.Input.Email}}" required class="input w-full {{if index .Errors "email"}}input-error{{end}}">{{template "field-error" (index .Errors "email")}}</label>
+      <label class="block sm:col-span-2">
+        <span class="mb-1.5 block text-sm font-medium">{{if .IsNew}}Password{{else}}New password <span class="font-normal text-base-content/55">(leave empty to keep the current one)</span>{{end}}</span>
+        <input type="password" name="password" autocomplete="new-password" {{if .IsNew}}required{{end}} minlength="10" class="input w-full sm:w-1/2 {{if index .Errors "password"}}input-error{{end}}">
+        {{template "field-error" (index .Errors "password")}}
+        <span class="mt-1.5 block text-xs text-base-content/60">At least 10 characters. Share it with the user through a secure channel.</span>
+      </label>
+    </div>
+    <div class="mt-5 flex flex-wrap gap-6">
+      <label class="flex cursor-pointer items-center gap-3">
+        <input type="hidden" name="active" value="false"><input type="checkbox" name="active" value="true" class="toggle toggle-primary toggle-sm" {{if .Input.Active}}checked{{end}} {{if .IsSelf}}disabled{{end}}>
+        <span class="text-sm font-medium">Active</span>
+      </label>
+      <label class="flex cursor-pointer items-center gap-3">
+        <input type="checkbox" name="superAdmin" value="true" class="toggle toggle-primary toggle-sm" x-model="superAdmin" {{if .Input.SuperAdmin}}checked{{end}}>
+        <span><span class="block text-sm font-medium">Super Admin</span><span class="block text-xs text-base-content/60">Full access to every site, users, roles and settings.</span></span>
+      </label>
+    </div>
+  </section>
+
+  <section class="rounded-box border border-base-300 bg-base-100 p-6" x-show="!superAdmin">
+    <h2 class="font-semibold">Site access</h2>
+    <p class="mt-1 mb-4 text-sm text-base-content/65">Choose a role for each site this person works on. Sites set to “No access” are hidden from them.</p>
+    {{if .Sites}}
+    <ul class="divide-y divide-base-300">
+      {{range .Sites}}
+      <li class="flex flex-wrap items-center gap-3 py-2.5" style="--site-hue: {{siteHue .Slug}}">
+        <span class="site-tile grid size-7 shrink-0 place-items-center rounded-md text-xs font-bold">{{initial .Name}}</span>
+        <span class="min-w-0 flex-1"><span class="block truncate font-medium">{{.Name}}</span><span class="block font-mono text-xs text-base-content/55">{{.Slug}}</span></span>
+        <select name="role_{{.ID}}" class="select select-sm w-48" aria-label="Role on {{.Name}}">
+          <option value="">No access</option>
+          {{$cur := index $.Data.RoleBySite .ID}}
+          {{range $.Data.Roles}}<option value="{{.ID}}" {{if eq .ID $cur}}selected{{end}}>{{.Name}}</option>{{end}}
+        </select>
+      </li>
+      {{end}}
+    </ul>
+    {{else}}<p class="text-sm text-base-content/60">No sites exist yet.</p>{{end}}
+  </section>
+
+  <div class="flex justify-end gap-2">
+    <a href="/admin/users" class="btn btn-ghost">Cancel</a>
+    <button class="btn btn-primary">{{if .IsNew}}Add user{{else}}Save changes{{end}}</button>
+  </div>
+</form>
+
+{{if and (not .IsNew) (not .IsSelf)}}
+<form method="post" action="/admin/users/{{.Edit.ID}}/delete" class="mt-8 max-w-4xl" data-confirm="Delete {{.Input.Name}}? They will be signed out and cannot log in again. Their entries stay." data-confirm-ok="Delete user">
+  {{template "csrf" $.CSRF}}
+  <button class="btn btn-ghost btn-sm text-error">{{icon "trash"}} Delete user</button>
+</form>
+{{end}}
+{{end}}
+{{end}}
