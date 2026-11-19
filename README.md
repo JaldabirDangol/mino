@@ -79,7 +79,7 @@ All settings are environment variables.
 | `MINO_S3_PATH_STYLE` | `true` | `endpoint/bucket/key`; set `false` for `bucket.endpoint/key` |
 | `MINO_DB_MAX_CONNS` | `5` | Connection pool size |
 | `MINO_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
-| `MINO_LOG_FORMAT` | `text` | `text` or `json` |
+| `MINO_LOG_FORMAT` | `pretty` in a terminal, else `text` | `pretty` (readable, colored), `text` (key=value) or `json`. `NO_COLOR=1` disables colors. |
 | `MINO_DEV` | `false` | Reload templates and static files from disk |
 | `GOMEMLIMIT` | `128MiB` | Go soft memory limit |
 

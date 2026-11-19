@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -21,6 +22,7 @@ import (
 	"mino/internal/config"
 	"mino/internal/content"
 	"mino/internal/db"
+	"mino/internal/logging"
 	"mino/internal/media"
 	"mino/internal/schema"
 	"mino/internal/server"
@@ -46,6 +48,21 @@ func main() {
 		fmt.Fprintln(os.Stderr, "mino:", err)
 		os.Exit(1)
 	}
+}
+
+// baseURL is the address people open in a browser.
+func baseURL(cfg *config.Config) string {
+	if cfg.PublicURL != "" {
+		return cfg.PublicURL
+	}
+	host, port, err := net.SplitHostPort(cfg.Addr)
+	if err != nil {
+		return "http://" + cfg.Addr
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" || host == "127.0.0.1" {
+		host = "localhost"
+	}
+	return "http://" + net.JoinHostPort(host, port)
 }
 
 // origin returns scheme://host of a URL, or "" if it has none.
@@ -89,9 +106,21 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	var handler slog.Handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel})
-	if cfg.LogFormat == "json" {
+	format := cfg.LogFormat
+	if format == "" {
+		format = "text"
+		if logging.IsTerminal(os.Stdout) {
+			format = "pretty"
+		}
+	}
+	var handler slog.Handler
+	switch format {
+	case "json":
 		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel})
+	case "pretty":
+		handler = logging.NewPretty(os.Stdout, cfg.LogLevel, os.Getenv("NO_COLOR") == "")
+	default:
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel})
 	}
 	log := slog.New(handler)
 
@@ -117,11 +146,11 @@ func run() error {
 	if cfg.S3Bucket != "" {
 		storage = &media.S3{Endpoint: cfg.S3Endpoint, Region: cfg.S3Region, Bucket: cfg.S3Bucket,
 			AccessKey: cfg.S3AccessKey, SecretKey: cfg.S3SecretKey, PublicURL: cfg.S3PublicURL, PathStyle: cfg.S3PathStyle}
-		log.Info("media storage", "backend", "s3", "bucket", cfg.S3Bucket)
+		log.Info("Media files are stored in S3", "bucket", cfg.S3Bucket)
 	} else {
 		local = &media.Local{Dir: cfg.UploadDir, BaseURL: cfg.PublicURL + "/uploads"}
 		storage = local
-		log.Info("media storage", "backend", "local", "dir", cfg.UploadDir)
+		log.Info("Media files are stored on disk", "folder", cfg.UploadDir)
 	}
 
 	siteSvc := sites.NewService(pool)
@@ -153,7 +182,16 @@ func run() error {
 	}
 	errc := make(chan error, 1)
 	go func() {
-		log.Info("listening", "addr", cfg.Addr, "version", version)
+		base := baseURL(cfg)
+		if format == "pretty" {
+			name := "Mino"
+			if version != "dev" {
+				name += " " + version
+			}
+			fmt.Printf("\n  %s is running\n\n  Admin panel   %s/admin\n  REST API      %s/api/<site>/<content-type>\n\n  Press Ctrl+C to stop.\n\n", name, base, base)
+		} else {
+			log.Info("listening", "addr", cfg.Addr, "admin", base+"/admin", "version", version)
+		}
 		if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			errc <- err
 		}
@@ -164,7 +202,7 @@ func run() error {
 		return err
 	case <-ctx.Done():
 	}
-	log.Info("shutting down")
+	log.Info("Shutting down")
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	return srv.Shutdown(shutdownCtx)

@@ -23,7 +23,7 @@ type Config struct {
 	SecureCookies bool          // MINO_SECURE_COOKIES, default true when PublicURL is https
 	TrustProxy    bool          // MINO_TRUST_PROXY, read client IP from X-Forwarded-For
 	LogLevel      slog.Level    // MINO_LOG_LEVEL: debug|info|warn|error
-	LogFormat     string        // MINO_LOG_FORMAT: text|json, default text
+	LogFormat     string        // MINO_LOG_FORMAT: pretty|text|json; empty = pretty in a terminal, text otherwise
 	Dev           bool          // MINO_DEV: serve static assets from disk, verbose errors
 	CORSOrigins   []string      // MINO_CORS_ORIGINS, comma-separated origins allowed to call /api; default "*"
 
@@ -45,7 +45,7 @@ func Load() (*Config, error) {
 		DatabaseURL: os.Getenv("MINO_DATABASE_URL"),
 		PublicURL:   strings.TrimRight(os.Getenv("MINO_PUBLIC_URL"), "/"),
 		UploadDir:   env("MINO_UPLOAD_DIR", "./uploads"),
-		LogFormat:   env("MINO_LOG_FORMAT", "text"),
+		LogFormat:   os.Getenv("MINO_LOG_FORMAT"),
 	}
 	var err error
 	if c.DatabaseURL == "" {
@@ -79,8 +79,10 @@ func Load() (*Config, error) {
 	if err := c.LogLevel.UnmarshalText([]byte(env("MINO_LOG_LEVEL", "info"))); err != nil {
 		return nil, fmt.Errorf("MINO_LOG_LEVEL: %w", err)
 	}
-	if c.LogFormat != "text" && c.LogFormat != "json" {
-		return nil, fmt.Errorf("MINO_LOG_FORMAT must be text or json")
+	switch c.LogFormat {
+	case "", "pretty", "text", "json":
+	default:
+		return nil, fmt.Errorf("MINO_LOG_FORMAT must be pretty, text or json")
 	}
 
 	for _, o := range strings.Split(env("MINO_CORS_ORIGINS", "*"), ",") {

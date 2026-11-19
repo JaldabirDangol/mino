@@ -47,7 +47,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	if !okIP || !okEmail {
 		wait := max(retryIP, retryEmail)
 		data.Error = fmt.Sprintf("Too many login attempts. Try again in %d minutes.", int(wait.Minutes())+1)
-		h.Log.Warn("login rate limited", "ip", ip, "email", email)
+		h.Log.Warn("Too many login attempts, blocked for a while", "email", email, "ip", ip)
 		h.page(w, r, http.StatusTooManyRequests, "login", h.view(r, "Log in", "", data))
 		return
 	}
@@ -66,7 +66,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, r, err)
 		return
 	}
-	h.Log.Info("admin login", "user", u.ID, "ip", ip)
+	h.Log.Info("User logged in", "email", u.Email, "ip", ip)
 	h.redirect(w, r, safeNext(data.Next))
 }
 

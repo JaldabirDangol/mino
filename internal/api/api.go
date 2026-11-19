@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -102,7 +103,7 @@ func (h *Handler) resolveSite(next http.Handler) http.Handler {
 		ctx := r.Context()
 		site, err := h.Sites.Get(ctx, chi.URLParam(r, "site"))
 		if errors.Is(err, sites.ErrNotFound) {
-			writeError(w, http.StatusNotFound, "NotFoundError", "Site not found", nil)
+			writeError(w, http.StatusNotFound, "NotFoundError", "No site with this slug. Check the first part of the URL: /api/{site}/…", nil)
 			return
 		}
 		if err != nil {
@@ -114,7 +115,7 @@ func (h *Handler) resolveSite(next http.Handler) http.Handler {
 			secret, ok := strings.CutPrefix(authz, "Bearer ")
 			tok, err := h.Tokens.Authenticate(ctx, strings.TrimSpace(secret))
 			if !ok || errors.Is(err, apitokens.ErrInvalid) || (tok != nil && tok.SiteID != site.ID) {
-				writeError(w, http.StatusUnauthorized, "UnauthorizedError", "Missing or invalid credentials", nil)
+				writeError(w, http.StatusUnauthorized, "UnauthorizedError", "The API token is invalid, expired, or belongs to another site. Send \"Authorization: Bearer <token>\" with a token created for this site.", nil)
 				return
 			}
 			if err != nil {
@@ -165,6 +166,30 @@ func (h *Handler) internal(w http.ResponseWriter, r *http.Request, err error) {
 	writeError(w, http.StatusInternalServerError, "InternalServerError", "Internal Server Error", nil)
 }
 
+// allow checks a permission and, when it is missing, answers 403 with a message that says
+// what is blocked and where to change it.
+func allow(w http.ResponseWriter, r *http.Request, perm string) bool {
+	p := principalFrom(r)
+	if p.Allowed(perm) {
+		return true
+	}
+	action, subject, _ := strings.Cut(perm, ":")
+	what := fmt.Sprintf("%q on %q", action, subject)
+	if perm == apitokens.UploadRead || perm == apitokens.UploadWrite {
+		what = map[string]string{apitokens.UploadRead: "reading the media library", apitokens.UploadWrite: "uploading or deleting media"}[perm]
+	}
+	if !p.Authenticated() {
+		if strings.HasPrefix(perm, "find") {
+			forbidden(w, fmt.Sprintf("Public access to %s is turned off. Turn it on in the admin under Site settings → Public API access, or send an API token in the Authorization header.", what))
+		} else {
+			forbidden(w, fmt.Sprintf("An API token is required for %s. Create one in the admin under Site settings → API Tokens and send it as \"Authorization: Bearer <token>\".", what))
+		}
+		return false
+	}
+	forbidden(w, fmt.Sprintf("This API token (%s) does not allow %s. Change its permissions in the admin under Site settings → API Tokens.", p.Token.Name, what))
+	return false
+}
+
 func forbidden(w http.ResponseWriter, msg string) {
 	if msg == "" {
 		msg = "Forbidden"
@@ -204,7 +229,7 @@ func (h *Handler) handleErr(w http.ResponseWriter, r *http.Request, err error) {
 func (h *Handler) contentType(w http.ResponseWriter, r *http.Request) (*schema.ContentType, bool) {
 	ct, err := h.Schemas.GetByRoute(r.Context(), siteFrom(r).ID, chi.URLParam(r, "type"))
 	if errors.Is(err, schema.ErrNotFound) {
-		writeError(w, http.StatusNotFound, "NotFoundError", "Not Found", nil)
+		writeError(w, http.StatusNotFound, "NotFoundError", fmt.Sprintf("This site has no content type at %q. Collections use their plural API id (e.g. /articles), single types their singular id (e.g. /homepage).", chi.URLParam(r, "type")), nil)
 		return nil, false
 	}
 	if err != nil {
@@ -249,8 +274,7 @@ func (h *Handler) find(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !principalFrom(r).Allowed(apitokens.Perm(apitokens.Find, ct.UID)) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.Perm(apitokens.Find, ct.UID)) {
 		return
 	}
 	q, ok := h.parseQuery(w, r, ct)
@@ -307,8 +331,7 @@ func (h *Handler) findOne(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !principalFrom(r).Allowed(apitokens.Perm(apitokens.FindOne, ct.UID)) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.Perm(apitokens.FindOne, ct.UID)) {
 		return
 	}
 	q, ok := h.parseQuery(w, r, ct)
@@ -380,8 +403,7 @@ func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !principalFrom(r).Allowed(apitokens.Perm(apitokens.Create, ct.UID)) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.Perm(apitokens.Create, ct.UID)) {
 		return
 	}
 	status, ok := writeStatus(w, r)
@@ -409,8 +431,7 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !principalFrom(r).Allowed(apitokens.Perm(apitokens.Update, ct.UID)) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.Perm(apitokens.Update, ct.UID)) {
 		return
 	}
 	status, ok := writeStatus(w, r)
@@ -438,8 +459,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if !principalFrom(r).Allowed(apitokens.Perm(apitokens.Delete, ct.UID)) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.Perm(apitokens.Delete, ct.UID)) {
 		return
 	}
 	if err := h.Engine.Delete(r.Context(), ct, id); err != nil {
@@ -458,8 +478,7 @@ func (h *Handler) single(w http.ResponseWriter, r *http.Request, action string) 
 		writeError(w, http.StatusMethodNotAllowed, "MethodNotAllowedError", "Use /"+ct.PluralName+"/{id} for collection entries", nil)
 		return nil, false
 	}
-	if !principalFrom(r).Allowed(apitokens.Perm(action, ct.UID)) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.Perm(action, ct.UID)) {
 		return nil, false
 	}
 	return ct, true

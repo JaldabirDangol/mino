@@ -14,8 +14,7 @@ import (
 const maxFilesPerUpload = 20
 
 func (h *Handler) listFiles(w http.ResponseWriter, r *http.Request) {
-	if !principalFrom(r).Allowed(apitokens.UploadRead) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.UploadRead) {
 		return
 	}
 	qv := r.URL.Query()
@@ -40,8 +39,7 @@ func (h *Handler) listFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getFile(w http.ResponseWriter, r *http.Request) {
-	if !principalFrom(r).Allowed(apitokens.UploadRead) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.UploadRead) {
 		return
 	}
 	id, ok := entryID(w, r)
@@ -57,8 +55,7 @@ func (h *Handler) getFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) deleteFile(w http.ResponseWriter, r *http.Request) {
-	if !principalFrom(r).Allowed(apitokens.UploadWrite) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.UploadWrite) {
 		return
 	}
 	id, ok := entryID(w, r)
@@ -75,8 +72,7 @@ func (h *Handler) deleteFile(w http.ResponseWriter, r *http.Request) {
 // upload accepts multipart/form-data with one or more parts named "files". Parts are streamed
 // to temporary files, so memory use does not grow with upload size.
 func (h *Handler) upload(w http.ResponseWriter, r *http.Request) {
-	if !principalFrom(r).Allowed(apitokens.UploadWrite) {
-		forbidden(w, "")
+	if !allow(w, r, apitokens.UploadWrite) {
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, h.Media.MaxSize()*maxFilesPerUpload+1<<20)

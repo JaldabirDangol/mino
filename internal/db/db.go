@@ -141,7 +141,7 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) ([]int, 
 		if err != nil {
 			return done, fmt.Errorf("apply migration %s: %w", m.Name, err)
 		}
-		log.Info("applied migration", "version", m.Version, "name", m.Name)
+		log.Info("Database updated", "migration", m.Name)
 		done = append(done, m.Version)
 	}
 	return done, nil
