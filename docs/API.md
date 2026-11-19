@@ -130,7 +130,7 @@ sort[0]=views:desc&sort[1]=title
 
 Sortable: `id`, `createdAt`, `updatedAt`, `publishedAt` and fields of type short/long
 text, email, enumeration (case-insensitive), number, boolean, date, datetime.
-Ties are broken by `id`.
+Ties are broken by `id`. Private fields cannot be used for sorting or filtering.
 
 ### Filters
 

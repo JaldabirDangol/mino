@@ -197,9 +197,12 @@ func (h *Handler) contentIndex(w http.ResponseWriter, r *http.Request) {
 		if f.IsLink() || f.Type == schema.TypeJSON {
 			continue
 		}
-		d.Filterable = append(d.Filterable, f)
+		// The shared query parser refuses private fields for filtering and sorting.
+		if !f.Private {
+			d.Filterable = append(d.Filterable, f)
+		}
 		if len(d.Columns) < 4 && f.Type != schema.TypeRichText && f.Type != schema.TypeText {
-			d.Columns = append(d.Columns, listColumn{Field: f, Sortable: f.Sortable()})
+			d.Columns = append(d.Columns, listColumn{Field: f, Sortable: f.Sortable() && !f.Private})
 		}
 	}
 

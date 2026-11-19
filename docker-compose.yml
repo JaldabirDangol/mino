@@ -1,0 +1,52 @@
+# One Mino installation (serving any number of sites) plus PostgreSQL.
+#   cp .env.example .env   # set POSTGRES_PASSWORD at least
+#   docker compose up -d
+#   open http://localhost:1337/admin
+services:
+  db:
+    # Debian-based image: its collation sorts text case-insensitively as editors expect.
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mino
+      POSTGRES_DB: mino
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    # Small-server tuning: Mino keeps at most 5 connections.
+    command: >
+      postgres -c shared_buffers=64MB -c max_connections=20 -c work_mem=4MB
+               -c maintenance_work_mem=32MB -c effective_cache_size=192MB
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mino -d mino"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mino:
+    build: .
+    image: mino:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${MINO_PORT:-1337}:1337"
+    environment:
+      MINO_DATABASE_URL: postgres://mino:${POSTGRES_PASSWORD}@db:5432/mino?sslmode=disable
+      MINO_PUBLIC_URL: ${MINO_PUBLIC_URL:-http://localhost:1337}
+      MINO_TRUST_PROXY: ${MINO_TRUST_PROXY:-false}
+      MINO_CORS_ORIGINS: ${MINO_CORS_ORIGINS:-*}
+      MINO_LOG_FORMAT: json
+      MINO_S3_BUCKET: ${MINO_S3_BUCKET:-}
+      MINO_S3_ENDPOINT: ${MINO_S3_ENDPOINT:-}
+      MINO_S3_REGION: ${MINO_S3_REGION:-us-east-1}
+      MINO_S3_ACCESS_KEY: ${MINO_S3_ACCESS_KEY:-}
+      MINO_S3_SECRET_KEY: ${MINO_S3_SECRET_KEY:-}
+      MINO_S3_PUBLIC_URL: ${MINO_S3_PUBLIC_URL:-}
+    volumes:
+      - uploads:/data
+
+volumes:
+  pgdata:
+  uploads:

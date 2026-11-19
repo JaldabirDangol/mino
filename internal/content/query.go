@@ -297,7 +297,8 @@ func checkSortable(ct *schema.ContentType, name string) error {
 		return nil
 	}
 	f, ok := ct.Field(name)
-	if !ok {
+	if !ok || f.Private {
+		// Private fields are rejected like unknown ones: ordering by them would reveal their values.
 		return qerr("unknown sort field %q", name)
 	}
 	if !f.Sortable() {

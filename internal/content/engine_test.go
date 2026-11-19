@@ -441,6 +441,7 @@ func TestParseQueryRejects(t *testing.T) {
 		"filters[unknown][$eq]=1",
 		"filters[title][$regex]=x",
 		"filters[secret][$eq]=x", // private fields cannot be filtered
+		"sort=secret",            // ...or used for ordering, which would leak their values
 		"filters[views][$gt]=abc",
 		"sort=title:sideways",
 		"sort=nope",

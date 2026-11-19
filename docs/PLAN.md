@@ -124,11 +124,15 @@ Review checkpoints: after phases **2**, **5** and **6**.
 
 ## Phase 7 — Delivery
 
-- [ ] Dockerfile (static binary, distroless) and docker-compose
-- [ ] README (setup, configuration, deployment)
-- [ ] `docs/ARCHITECTURE.md`
-- [ ] Memory/startup measurements under representative load
-- [ ] Security pass
+- [x] Dockerfile (static binary, distroless, non-root, built-in healthcheck) — 28 MB image
+- [x] docker-compose (Mino + postgres:17 tuned for small servers), `.env.example`, Makefile
+- [x] README (setup, configuration, deployment, S3, proxies, roles, backups)
+- [x] `docs/ARCHITECTURE.md`
+- [x] Measurements: 10 sites, 2,000 entries, 16 clients, 60 s mixed load → 2,233 req/s,
+      0 errors, p99 11.8 ms; Mino ~30 MB, PostgreSQL ~49 MB (stack ~80 MB)
+- [x] Security pass: admin Content-Security-Policy, no inline handlers, proxy
+      misconfiguration warning, private fields no longer sortable through the API
+- [ ] `govulncheck ./...` (not run here: fetching the tool was not permitted in this session)
 
 ---
 
