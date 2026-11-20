@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	docsfiles "mino/docs"
 	"mino/internal/admin"
 	"mino/internal/api"
 	"mino/internal/apitokens"
@@ -22,6 +24,7 @@ import (
 	"mino/internal/config"
 	"mino/internal/content"
 	"mino/internal/db"
+	"mino/internal/docs"
 	"mino/internal/logging"
 	"mino/internal/media"
 	"mino/internal/schema"
@@ -173,9 +176,19 @@ func run() error {
 		return fmt.Errorf("admin templates: %w", err)
 	}
 
+	docsSource := fs.FS(docsfiles.Files)
+	if cfg.Dev {
+		docsSource = os.DirFS("docs")
+	}
+	docsRoutes, err := (&docs.Handler{Source: docsSource, AppName: "Mino", Dev: cfg.Dev}).Routes()
+	if err != nil {
+		return fmt.Errorf("docs: %w", err)
+	}
+
 	srv := &http.Server{
 		Addr: cfg.Addr,
 		Handler: server.New(server.Options{Log: log, Pool: pool, API: apiHandler.Routes(), Admin: adminRoutes,
+			Docs:  docsRoutes,
 			Local: local, TrustProxy: cfg.TrustProxy}),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       2 * time.Minute,

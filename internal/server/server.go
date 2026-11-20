@@ -26,6 +26,7 @@ type Options struct {
 	Pool       *pgxpool.Pool
 	API        http.Handler // mounted at /api
 	Admin      http.Handler // mounted at /admin (may be nil)
+	Docs       http.Handler // mounted at /docs (may be nil)
 	Local      *media.Local // serves /uploads when media is stored on disk
 	TrustProxy bool
 }
@@ -51,6 +52,9 @@ func New(o Options) http.Handler {
 		_, _ = w.Write([]byte("ok"))
 	})
 	r.Mount("/api", o.API)
+	if o.Docs != nil {
+		r.Mount("/docs", o.Docs)
+	}
 	if o.Admin != nil {
 		r.Mount("/admin", o.Admin)
 		r.Get("/", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/admin/", http.StatusFound) })
@@ -140,7 +144,8 @@ func requestLog(log *slog.Logger) func(http.Handler) http.Handler {
 			start := time.Now()
 			sw := &statusWriter{ResponseWriter: w}
 			next.ServeHTTP(sw, r)
-			if r.URL.Path == "/healthz" || strings.HasPrefix(r.URL.Path, "/admin/static/") {
+			if r.URL.Path == "/healthz" || strings.HasPrefix(r.URL.Path, "/admin/static/") ||
+				strings.HasPrefix(r.URL.Path, "/docs/static/") {
 				return
 			}
 			level := slog.LevelInfo

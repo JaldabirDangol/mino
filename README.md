@@ -109,7 +109,9 @@ Terminate TLS at the proxy and forward to port 1337 with the original `Host` hea
 
 ## REST API
 
-See [docs/API.md](docs/API.md). Examples:
+See [docs/GUIDE.md](docs/GUIDE.md) for a walkthrough (populate, filters, pagination) and
+[docs/API.md](docs/API.md) for the full reference. A running Mino serves both at `/docs`.
+Examples:
 
 ```bash
 # Public (after enabling find on Article)
@@ -124,6 +126,11 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/jso
   -d '{"data":{"title":"Hello","author":3}}' \
   'https://cms.example.com/api/blog/articles?status=published'
 ```
+
+## Examples
+
+[examples/ellet](examples/ellet) — a production Next.js site originally built on Strapi, rewired
+to Mino, with a seed tool that creates its site, content types, tokens and content.
 
 ## Resource use
 

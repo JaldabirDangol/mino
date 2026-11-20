@@ -63,6 +63,7 @@
           <ul class="menu w-full gap-0.5 p-0">
             {{template "nav-item" (dict "Href" (printf "/admin/s/%s/tokens" .Site.Slug) "Icon" "key" "Label" "API Tokens" "Active" (eq .Nav "tokens"))}}
             {{template "nav-item" (dict "Href" (printf "/admin/s/%s/api-access" .Site.Slug) "Icon" "globe" "Label" "Public API access" "Active" (eq .Nav "api-access"))}}
+            {{template "nav-item" (dict "Href" "/docs/" "Icon" "code" "Label" "API docs" "Active" false)}}
           </ul>
           {{end}}
           {{end}}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{.Title}} · {{.AppName}} docs</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234b4fd8'/%3E%3Cpath d='M8 23V10l8 8 8-8v13' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/docs/static/docs.css">
+<script src="/docs/static/docs.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="top">
+  <a class="brand" href="/docs/"><span class="name">{{.AppName}}</span><span class="tag">docs</span></a>
+  <nav class="pages" aria-label="Documentation">
+    {{range .Pages}}<a href="/docs/{{.Slug}}"{{if eq .Slug $.Slug}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
+  </nav>
+  <a class="admin" href="/admin/">Admin panel</a>
+</header>
+<div class="layout">
+  {{if .TOC}}
+  <aside class="toc">
+    <p class="toc-label">On this page</p>
+    <nav aria-label="On this page">
+      {{range .TOC}}<a href="#{{.ID}}">{{.Text}}</a>{{end}}
+    </nav>
+  </aside>
+  {{end}}
+  <main id="content" class="prose">{{.Body}}</main>
+</div>
+</body>
+</html>

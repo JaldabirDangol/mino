@@ -5,6 +5,7 @@ go 1.26.2
 require (
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/jackc/pgx/v5 v5.13.0
+	github.com/yuin/goldmark v1.7.13
 	golang.org/x/crypto v0.59.0
 	golang.org/x/net v0.63.0
 )

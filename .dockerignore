@@ -1,5 +1,9 @@
 .git
 web/node_modules
-docs
+docs/*
 *.md
 !README.md
+# Embedded and served at /docs.
+!docs/docs.go
+!docs/GUIDE.md
+!docs/API.md
